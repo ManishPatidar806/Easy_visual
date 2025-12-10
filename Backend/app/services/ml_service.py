@@ -1,4 +1,3 @@
-"""Machine Learning service for pipeline operations"""
 import io
 import pandas as pd
 import numpy as np
@@ -8,39 +7,24 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 from app.utils.storage import save_pipeline, load_pipeline, generate_pipeline_id, PIPELINES
 from app.core.config import settings
 
 
 class MLService:
-    """Machine Learning operations service"""
-    
     @staticmethod
     async def upload_dataset(file_content: bytes, filename: str) -> Tuple[str, Dict[str, Any]]:
-        """
-        Upload and process dataset
-        
-        Args:
-            file_content: File content in bytes
-            filename: Original filename
-            
-        Returns:
-            Tuple of (pipeline_id, dataset_info)
-        """
-        # Read file based on extension
         if filename.endswith('.csv'):
             df = pd.read_csv(io.BytesIO(file_content))
         elif filename.endswith(('.xlsx', '.xls')):
             df = pd.read_excel(io.BytesIO(file_content))
         else:
-            raise ValueError("Unsupported file format. Please upload CSV or Excel file.")
+            raise ValueError("Unsupported file format")
         
-        # Generate pipeline ID
         pipeline_id = generate_pipeline_id()
         
-        # Get dataset info
         dataset_info = {
             "rows": len(df),
             "columns": len(df.columns),
@@ -48,7 +32,6 @@ class MLService:
             "column_types": {col: str(dtype) for col, dtype in df.dtypes.items()},
         }
         
-        # Store dataset
         save_pipeline(pipeline_id, {
             "dataset": df.to_dict('records'),
             "dataset_info": dataset_info,
@@ -63,24 +46,12 @@ class MLService:
         scaler_type: str,
         columns: List[str]
     ) -> Dict[str, Any]:
-        """
-        Preprocess dataset with scaling
-        
-        Args:
-            pipeline_id: Pipeline identifier
-            scaler_type: Type of scaler (standardization or normalization)
-            columns: Columns to preprocess
-            
-        Returns:
-            Processing results
-        """
         pipeline = load_pipeline(pipeline_id)
         if not pipeline:
             raise ValueError(f"Pipeline {pipeline_id} not found")
         
         df = pd.DataFrame(pipeline["dataset"])
         
-        # Select scaler
         if scaler_type == "standardization":
             scaler = StandardScaler()
         elif scaler_type == "normalization":
@@ -88,10 +59,8 @@ class MLService:
         else:
             raise ValueError(f"Unknown scaler type: {scaler_type}")
         
-        # Apply scaling to selected columns
         df[columns] = scaler.fit_transform(df[columns])
         
-        # Update pipeline
         save_pipeline(pipeline_id, {
             "dataset": df.to_dict('records'),
             "preprocessing": {
@@ -111,21 +80,8 @@ class MLService:
         split_ratio: float,
         target_column: str
     ) -> Dict[str, Any]:
-        """
-        Split data into training and testing sets
-        
-        Args:
-            pipeline_id: Pipeline identifier
-            split_ratio: Ratio for train split
-            target_column: Target column name
-            
-        Returns:
-            Split information
-        """
-        print(f"[DEBUG] Split - Pipeline ID: {pipeline_id}, Ratio: {split_ratio}, Target: {target_column}")
         pipeline = load_pipeline(pipeline_id)
         if not pipeline:
-            print(f"[ERROR] Pipeline {pipeline_id} not found")
             raise ValueError(f"Pipeline {pipeline_id} not found")
         
         df = pd.DataFrame(pipeline["dataset"])
@@ -133,21 +89,16 @@ class MLService:
         if target_column not in df.columns:
             raise ValueError(f"Target column '{target_column}' not found")
         
-        # Separate features and target
         X = df.drop(columns=[target_column])
         y = df[target_column]
-        
-        # Handle non-numeric features
         X_numeric = X.select_dtypes(include=[np.number])
         
-        # Split data
         X_train, X_test, y_train, y_test = train_test_split(
             X_numeric, y,
             train_size=split_ratio,
             random_state=settings.RANDOM_STATE
         )
         
-        # Store split data
         save_pipeline(pipeline_id, {
             "X_train": X_train.to_dict('records'),
             "X_test": X_test.to_dict('records'),
@@ -171,36 +122,18 @@ class MLService:
         pipeline_id: str,
         model_type: str
     ) -> Dict[str, Any]:
-        """
-        Train machine learning model
-        
-        Args:
-            pipeline_id: Pipeline identifier
-            model_type: Type of model to train
-            
-        Returns:
-            Training results with metrics
-        """
-        print(f"[DEBUG] Training - Pipeline ID: {pipeline_id}, Model: {model_type}")
         pipeline = load_pipeline(pipeline_id)
         if not pipeline:
-            print(f"[ERROR] Pipeline {pipeline_id} not found in storage")
-            print(f"[DEBUG] Available pipelines: {list(PIPELINES.keys())}")
             raise ValueError(f"Pipeline {pipeline_id} not found")
         
-        # Check if data is split
         if "X_train" not in pipeline:
-            print(f"[ERROR] Pipeline {pipeline_id} has no X_train data")
-            print(f"[DEBUG] Pipeline keys: {list(pipeline.keys())}")
             raise ValueError("Data must be split before training")
         
-        # Load data
         X_train = pd.DataFrame(pipeline["X_train"])
         X_test = pd.DataFrame(pipeline["X_test"])
         y_train = np.array(pipeline["y_train"])
         y_test = np.array(pipeline["y_test"])
         
-        # Select model
         if model_type == "logistic_regression":
             model = LogisticRegression(random_state=settings.RANDOM_STATE, max_iter=1000)
         elif model_type == "decision_tree":
@@ -210,18 +143,14 @@ class MLService:
         else:
             raise ValueError(f"Unknown model type: {model_type}")
         
-        # Train model
         model.fit(X_train, y_train)
         
-        # Make predictions
         y_train_pred = model.predict(X_train)
         y_test_pred = model.predict(X_test)
         
-        # Calculate metrics
         train_accuracy = accuracy_score(y_train, y_train_pred)
         test_accuracy = accuracy_score(y_test, y_test_pred)
         
-        # Calculate additional metrics (handle multiclass)
         try:
             precision = precision_score(y_test, y_test_pred, average='weighted', zero_division=0)
             recall = recall_score(y_test, y_test_pred, average='weighted', zero_division=0)
@@ -237,10 +166,9 @@ class MLService:
             "f1_score": float(f1),
         }
         
-        # Store model results
         save_pipeline(pipeline_id, {
             "model_type": model_type,
-            "model": model,  # Store model object
+            "model": model,
             "metrics": metrics,
             "predictions": {
                 "train": y_train_pred.tolist(),
@@ -258,15 +186,6 @@ class MLService:
     
     @staticmethod
     async def get_results(pipeline_id: str) -> Dict[str, Any]:
-        """
-        Get complete pipeline results
-        
-        Args:
-            pipeline_id: Pipeline identifier
-            
-        Returns:
-            Complete pipeline information
-        """
         pipeline = load_pipeline(pipeline_id)
         if not pipeline:
             raise ValueError(f"Pipeline {pipeline_id} not found")

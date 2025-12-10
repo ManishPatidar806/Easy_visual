@@ -17,7 +17,6 @@ export class WorkflowExecutor {
     }
 
     try {
-      // All nodes are ML nodes now
       return await this.executeMLNode(config, input);
     } catch (error: any) {
       return {
@@ -27,9 +26,7 @@ export class WorkflowExecutor {
     }
   }
 
-  // ============== ML NODE EXECUTION ==============
-
-  private async executeMLNode(
+  private async executeMLUpload(
     config: Record<string, any>,
     input: any
   ): Promise<NodeExecutionResult> {
@@ -188,7 +185,6 @@ export class WorkflowExecutor {
       }
 
       const modelType = config.modelType || "logistic_regression";
-      console.log('Training with model type:', modelType, 'Config:', config);
 
       const result = await trainModel(
         input.pipeline_id,
@@ -207,7 +203,6 @@ export class WorkflowExecutor {
         },
       };
     } catch (error: any) {
-      console.error('Training error:', error);
       return {
         success: false,
         error: error.message || "Training failed",

@@ -1,7 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
-// ============== ML Pipeline API ==============
-
 export async function uploadDataset(file: File) {
   const formData = new FormData();
   formData.append('file', file);

@@ -51,7 +51,6 @@ export default function Home() {
 
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      // Update store with the changes
       changes.forEach((change) => {
         if (change.type === "remove") {
           const { nodes: currentNodes } = useWorkflowStore.getState();
@@ -72,7 +71,6 @@ export default function Home() {
 
   const handleEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
-      // Update store with the changes
       changes.forEach((change) => {
         if (change.type === "remove") {
           const { edges: currentEdges } = useWorkflowStore.getState();
@@ -135,7 +133,6 @@ export default function Home() {
     setIsExecuting(true);
     const executor = new WorkflowExecutor();
 
-    // Find trigger nodes (nodes with no incoming edges)
     const triggerNodes = nodes.filter(
       (node) => !edges.some((edge) => (edge as any).target === node.id)
     );
@@ -146,7 +143,6 @@ export default function Home() {
       return;
     }
 
-    // Reset all nodes
     nodes.forEach((node) => {
       updateNode(node.id, {
         output: undefined,
@@ -155,7 +151,6 @@ export default function Home() {
       });
     });
 
-    // Execute nodes in order
     const executedNodes = new Set<string>();
     const nodeOutputs: Record<string, any> = {};
 
@@ -183,7 +178,6 @@ export default function Home() {
           });
           nodeOutputs[nodeId] = result.output;
 
-          // Find and execute connected nodes
           const connectedEdges = edges.filter((edge) => (edge as any).source === nodeId);
           for (const edge of connectedEdges) {
             await executeNodeChain((edge as any).target, result.output);
@@ -202,8 +196,7 @@ export default function Home() {
       }
     };
 
-    // Execute from each trigger
-    for (const triggerNode of triggerNodes) {
+    for (const trigger of triggers) {
       await executeNodeChain(triggerNode.id);
     }
 

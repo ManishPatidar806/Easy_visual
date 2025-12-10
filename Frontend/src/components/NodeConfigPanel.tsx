@@ -32,7 +32,6 @@ export default function NodeConfigPanel({
     if (node?.data.config) {
       const newConfig = { ...node.data.config };
       
-      // Ensure default values are set if not present
       const def = nodeDefinitions[node.data.type];
       if (def?.defaultConfig) {
         Object.keys(def.defaultConfig).forEach(key => {
@@ -83,10 +82,8 @@ export default function NodeConfigPanel({
     );
   };
 
-  // Get available columns from previous node output
   const getAvailableColumns = (): string[] => {
     if (!node?.data.output?.dataset_info?.column_names) {
-      // Try to find from previous connected nodes
       const edges = useWorkflowStore.getState().edges;
       const incomingEdge = edges.find((e: any) => e.target === nodeId);
       if (incomingEdge) {
@@ -102,7 +99,6 @@ export default function NodeConfigPanel({
 
   const getNumericColumns = (): string[] => {
     const allColumns = getAvailableColumns();
-    // For simplicity, return all columns; backend will filter numeric
     return allColumns;
   };
 
