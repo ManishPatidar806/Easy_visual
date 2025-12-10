@@ -196,7 +196,7 @@ export default function Home() {
       }
     };
 
-    for (const trigger of triggers) {
+    for (const triggerNode of triggerNodes) {
       await executeNodeChain(triggerNode.id);
     }
 

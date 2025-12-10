@@ -17,7 +17,7 @@ export class WorkflowExecutor {
     }
 
     try {
-      return await this.executeMLNode(config, input);
+      return await this.executeMLNodeSwitch(config, input);
     } catch (error: any) {
       return {
         success: false,
@@ -26,7 +26,7 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeMLUpload(
+  private async executeMLNodeSwitch(
     config: Record<string, any>,
     input: any
   ): Promise<NodeExecutionResult> {
