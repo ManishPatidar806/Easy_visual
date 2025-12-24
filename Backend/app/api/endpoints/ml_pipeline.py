@@ -3,6 +3,8 @@ from typing import Dict, Any
 
 from app.models.pipeline_models import (
     UploadResponse,
+    CleanRequest,
+    CleanResponse,
     PreprocessRequest,
     PreprocessResponse,
     SplitRequest,
@@ -33,6 +35,23 @@ async def upload_dataset(file: UploadFile = File(...)):
             message=f"Dataset uploaded successfully: {dataset_info['rows']} rows, {dataset_info['columns']} columns"
         )
         
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/clean", response_model=CleanResponse)
+async def clean_data(request: CleanRequest):
+    try:
+        result = await MLService.clean_data(
+            request.pipeline_id,
+            request.strategy,
+            request.columns,
+            request.fill_value
+        )
+        return CleanResponse(**result)
+        
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -74,7 +93,8 @@ async def train_model(request: TrainRequest):
     try:
         result = await MLService.train_model(
             request.pipeline_id,
-            request.model_type
+            request.model_type,
+            request.task_type
         )
         return TrainResponse(**result)
         

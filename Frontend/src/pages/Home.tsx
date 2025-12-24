@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -33,7 +33,6 @@ export default function Home() {
     useWorkflowStore();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
-  const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 
   const onConnect: OnConnect = useCallback(
@@ -124,6 +123,45 @@ export default function Home() {
     []
   );
 
+  // Handle keyboard delete
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedNodeId) {
+        // Prevent default backspace navigation
+        if (event.key === "Backspace") {
+          event.preventDefault();
+        }
+        
+        // Don't delete if user is typing in an input
+        const target = event.target as HTMLElement;
+        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+          return;
+        }
+
+        deleteNode(selectedNodeId);
+        setSelectedNodeId(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedNodeId]);
+
+  const deleteNode = useCallback(
+    (nodeId: string) => {
+      const { nodes: currentNodes, edges: currentEdges } = useWorkflowStore.getState();
+      
+      // Remove the node
+      setNodes(currentNodes.filter((node) => node.id !== nodeId));
+      
+      // Remove connected edges
+      setEdges(currentEdges.filter((edge) => 
+        (edge as any).source !== nodeId && (edge as any).target !== nodeId
+      ));
+    },
+    [setNodes, setEdges]
+  );
+
   const executeWorkflow = async () => {
     if (nodes.length === 0) {
       alert("Add some nodes to the canvas first!");
@@ -196,21 +234,27 @@ export default function Home() {
       }
     };
 
-    for (const triggerNode of triggerNodes) {
-      await executeNodeChain(triggerNode.id);
+    try {
+      for (const triggerNode of triggerNodes) {
+        await executeNodeChain(triggerNode.id);
+      }
+    } catch (error) {
+      console.error("Workflow execution error:", error);
+    } finally {
+      setIsExecuting(false);
     }
-
-    setIsExecuting(false);
   };
 
   return (
-    <div className="flex h-screen w-screen bg-gray-100 dark:bg-gray-950">
-      <Sidebar onExecute={executeWorkflow} isExecuting={isExecuting} />
-
-      <div className="flex-1" ref={reactFlowWrapper}>
+    <div className="flex h-screen">
+      <Sidebar
+        onExecute={executeWorkflow}
+        isExecuting={isExecuting}
+      />
+      <div className="flex-1">
         <ReactFlow
           nodes={nodes}
-          edges={edges as any}
+          edges={edges}
           onNodesChange={handleNodesChange}
           onEdgesChange={handleEdgesChange}
           onConnect={onConnect}
@@ -221,6 +265,7 @@ export default function Home() {
           nodeTypes={nodeTypes}
           fitView
           className="bg-gray-50 dark:bg-gray-900"
+          deleteKeyCode={["Delete", "Backspace"]}
         >
           <Background color="#aaa" gap={16} />
           <Controls />
@@ -241,7 +286,7 @@ export default function Home() {
 
           <Panel
             position="top-center"
-            className="bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+            className="bg-white dark:bg-gray-800 px-4 py-2 rounded-md shadow-sm border border-gray-200 dark:border-gray-700"
           >
             <div className="text-sm text-gray-600 dark:text-gray-400">
               <span className="font-semibold text-gray-900 dark:text-white">

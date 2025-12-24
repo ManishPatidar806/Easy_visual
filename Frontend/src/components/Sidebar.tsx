@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { nodeDefinitions, NodeDefinition } from "@/lib/node-definitions";
-import { Play, Trash2 } from "lucide-react";
+import { Play, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkflowStore } from "@/lib/store";
 
@@ -11,11 +11,43 @@ interface SidebarProps {
 
 export default function Sidebar({ onExecute, isExecuting }: SidebarProps) {
   const { clearWorkflow } = useWorkflowStore();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [width, setWidth] = useState(320); // 80 * 4 = 320px (w-80)
+  const [isResizing, setIsResizing] = useState(false);
 
   const onDragStart = (event: React.DragEvent, nodeType: string) => {
     event.dataTransfer.setData("application/reactflow", nodeType);
     event.dataTransfer.effectAllowed = "move";
   };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsResizing(true);
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isResizing) {
+      const newWidth = e.clientX;
+      if (newWidth >= 250 && newWidth <= 500) {
+        setWidth(newWidth);
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsResizing(false);
+  };
+
+  React.useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isResizing]);
 
   const categories = {
     ml: "ML Pipeline Nodes",
@@ -29,29 +61,70 @@ export default function Sidebar({ onExecute, isExecuting }: SidebarProps) {
     return acc;
   }, {} as Record<string, NodeDefinition[]>);
 
-  return (
-    <div className="w-80 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 p-4 overflow-y-auto">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-          ML Pipeline Builder
-        </h2>
-
-        <div className="flex gap-2">
-          <Button onClick={onExecute} disabled={isExecuting} className="flex-1">
-            <Play className="mr-2 h-4 w-4" />
-            {isExecuting ? "Running..." : "Run Pipeline"}
-          </Button>
-
-          <Button 
-            onClick={clearWorkflow} 
-            variant="outline"
-            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950"
-            title="Clear Workflow"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+  if (isCollapsed) {
+    return (
+      <div className="w-12 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col items-center py-4 relative">
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          title="Expand sidebar"
+        >
+          <ChevronRight className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+        </button>
+        <div className="mt-4 space-y-3">
+          {Object.values(nodeDefinitions).map((node) => (
+            <div
+              key={node.type}
+              draggable
+              onDragStart={(event) => onDragStart(event, node.type)}
+              className={`${node.color} p-2 rounded-md cursor-move hover:opacity-80 transition-opacity`}
+              title={node.label}
+            >
+              <node.icon className="h-4 w-4 text-white" />
+            </div>
+          ))}
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div 
+      className="bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-y-auto relative"
+      style={{ width: `${width}px` }}
+    >
+      <div className="p-4">
+        <div className="mb-6 flex items-start justify-between">
+          <div className="flex-1">
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+              ML Pipeline Builder
+            </h2>
+
+            <div className="flex gap-2">
+              <Button onClick={onExecute} disabled={isExecuting} className="flex-1">
+                <Play className="mr-2 h-4 w-4" />
+                {isExecuting ? "Running..." : "Run Pipeline"}
+              </Button>
+
+              <Button 
+                onClick={clearWorkflow} 
+                variant="outline"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950"
+                title="Clear Workflow"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
+          <button
+            onClick={() => setIsCollapsed(true)}
+            className="ml-2 p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors flex-shrink-0"
+            title="Collapse sidebar"
+          >
+            <ChevronLeft className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+          </button>
+        </div>
 
       {Object.entries(categories).map(([category, title]) => (
         <div key={category} className="mb-6">
@@ -65,7 +138,7 @@ export default function Sidebar({ onExecute, isExecuting }: SidebarProps) {
                 key={node.type}
                 draggable
                 onDragStart={(event) => onDragStart(event, node.type)}
-                className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg cursor-move hover:shadow-md transition-shadow"
+                className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md cursor-move hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
               >
                 <div className="flex items-start gap-3">
                   <div className={`${node.color} p-2 rounded-md`}>
@@ -87,11 +160,12 @@ export default function Sidebar({ onExecute, isExecuting }: SidebarProps) {
         </div>
       ))}
 
-      <div className="mt-8 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-        <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-2 text-sm">
-          🚀 Quick Start
+      <div className="mt-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800">
+        <h3 className="font-medium text-gray-900 dark:text-white mb-2 text-sm flex items-center gap-2">
+          <span>🚀</span>
+          <span>Quick Start</span>
         </h3>
-        <ol className="text-xs text-purple-800 dark:text-purple-200 space-y-1 list-decimal list-inside">
+        <ol className="text-xs text-gray-700 dark:text-gray-300 space-y-1 list-decimal list-inside">
           <li>Drag Upload Dataset to canvas</li>
           <li>Add Preprocess, Split, Train, Results</li>
           <li>Connect them in order</li>
@@ -99,6 +173,14 @@ export default function Sidebar({ onExecute, isExecuting }: SidebarProps) {
           <li>Click "Run Pipeline"</li>
         </ol>
       </div>
+      </div>
+
+      {/* Resize Handle */}
+      <div
+        className="absolute top-0 right-0 w-1 h-full cursor-ew-resize hover:bg-blue-500 transition-colors"
+        onMouseDown={handleMouseDown}
+        style={{ cursor: isResizing ? 'ew-resize' : 'col-resize' }}
+      />
     </div>
   );
 }

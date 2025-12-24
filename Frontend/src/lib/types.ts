@@ -2,6 +2,7 @@ import type { Node, Edge } from "reactflow";
 
 export type NodeType =
   | "mlUpload"
+  | "mlClean"
   | "mlPreprocess"
   | "mlSplit"
   | "mlTrain"

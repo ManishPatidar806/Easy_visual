@@ -1,6 +1,6 @@
 import { NodeExecutionContext, NodeExecutionResult } from "./types";
 import { nodeDefinitions } from "./node-definitions";
-import { uploadDataset, preprocessData, splitData, trainModel, getResults } from "@/api/client";
+import { uploadDataset, cleanData, preprocessData, splitData, trainModel, getResults } from "@/api/client";
 
 export class WorkflowExecutor {
   async executeNode(
@@ -34,6 +34,9 @@ export class WorkflowExecutor {
       case "mlUpload":
         return await this.executeMLUpload(config, input);
 
+      case "mlClean":
+        return await this.executeMLClean(config, input);
+
       case "mlPreprocess":
         return await this.executeMLPreprocess(config, input);
 
@@ -62,7 +65,7 @@ export class WorkflowExecutor {
       if (!config.file) {
         return {
           success: false,
-          error: "No file selected. Please upload a dataset.",
+          error: "❌ No file selected! Please click on the Upload node, then click 'Choose CSV/XLSX file...' to select your dataset.",
         };
       }
 
@@ -79,7 +82,52 @@ export class WorkflowExecutor {
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || "Upload failed",
+        error: error.message || "❌ Upload failed. Please make sure you selected a valid CSV or Excel file.",
+      };
+    }
+  }
+
+  private async executeMLClean(
+    config: Record<string, any>,
+    input: any
+  ): Promise<NodeExecutionResult> {
+    try {
+      if (!input || !input.pipeline_id) {
+        return {
+          success: false,
+          error: "❌ Not connected! Please connect this Clean Data node to an Upload node and execute the Upload node first.",
+        };
+      }
+
+      const strategy = config.strategy || "drop_rows";
+      const columns = config.columns || [];
+      const fillValue = config.fillValue;
+
+      const result = await cleanData(
+        input.pipeline_id,
+        strategy,
+        columns,
+        fillValue
+      );
+
+      return {
+        success: true,
+        output: {
+          pipeline_id: input.pipeline_id,
+          dataset_info: input.dataset_info,
+          missing_before: result.missing_before,
+          missing_after: result.missing_after,
+          rows_before: result.rows_before,
+          rows_after: result.rows_after,
+          cleaned_columns: result.cleaned_columns,
+          strategy: strategy,
+          message: result.message,
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || "❌ Data cleaning failed. Please check your data and strategy selection.",
       };
     }
   }
@@ -92,14 +140,14 @@ export class WorkflowExecutor {
       if (!input || !input.pipeline_id) {
         return {
           success: false,
-          error: "No pipeline ID. Connect this node to an Upload node.",
+          error: "❌ Not connected! Please connect this Preprocess node to an Upload node (draw a line from Upload to Preprocess) and execute the Upload node first.",
         };
       }
 
       if (!config.columns || config.columns.length === 0) {
         return {
           success: false,
-          error: "No columns selected for preprocessing.",
+          error: "❌ No columns selected! Click on this node, then select which numeric columns you want to preprocess. You need to choose at least one column.",
         };
       }
 
@@ -116,12 +164,13 @@ export class WorkflowExecutor {
           dataset_info: input.dataset_info,
           message: result.message,
           processed: true,
+          processed_columns: result.processed_columns || config.columns,
         },
       };
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || "Preprocessing failed",
+        error: error.message || "❌ Preprocessing failed. Make sure you selected only numeric columns.",
       };
     }
   }
@@ -134,14 +183,14 @@ export class WorkflowExecutor {
       if (!input || !input.pipeline_id) {
         return {
           success: false,
-          error: "No pipeline ID. Connect to previous ML node.",
+          error: "❌ Not connected! Please connect this Split node to the previous node (Upload or Preprocess) and execute it first.",
         };
       }
 
       if (!config.targetColumn) {
         return {
           success: false,
-          error: "No target column selected.",
+          error: "❌ No target column selected! Click on this node, then choose the target column (what you want to predict, like 'passed_exam').",
         };
       }
 
@@ -167,7 +216,7 @@ export class WorkflowExecutor {
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || "Split failed",
+        error: error.message || "❌ Data split failed. Make sure your dataset has enough rows and numeric columns.",
       };
     }
   }
@@ -180,32 +229,41 @@ export class WorkflowExecutor {
       if (!input || !input.pipeline_id) {
         return {
           success: false,
-          error: "No pipeline ID. Connect to Split node.",
+          error: "❌ Not connected! Please connect this Train node to a Split node and execute the Split node first.",
         };
       }
 
       const modelType = config.modelType || "logistic_regression";
+      const taskType = config.taskType || "classification";
 
       const result = await trainModel(
         input.pipeline_id,
-        modelType
+        modelType,
+        taskType
       );
+
+      const scoreLabel = taskType === "classification" ? "Accuracy" : "R² Score";
+      const scoreValue = taskType === "classification" ? result.test_score : result.test_score;
+      const displayValue = taskType === "classification" 
+        ? `${(scoreValue * 100).toFixed(2)}%`
+        : scoreValue.toFixed(3);
 
       return {
         success: true,
         output: {
           pipeline_id: input.pipeline_id,
           model_type: result.model_type,
-          train_accuracy: result.train_accuracy,
-          test_accuracy: result.test_accuracy,
+          task_type: result.task_type,
+          train_score: result.train_score,
+          test_score: result.test_score,
           metrics: result.metrics,
-          message: `Model trained! Accuracy: ${(result.test_accuracy * 100).toFixed(2)}%`,
+          message: `Model trained! ${scoreLabel}: ${displayValue}`,
         },
       };
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || "Training failed",
+        error: error.message || "❌ Model training failed. Please check your data and try again.",
       };
     }
   }
@@ -218,7 +276,7 @@ export class WorkflowExecutor {
       if (!input || !input.pipeline_id) {
         return {
           success: false,
-          error: "No pipeline ID. Connect to Train node.",
+          error: "❌ Not connected! Please connect this Results node to a Train node and execute the Train node first.",
         };
       }
 
@@ -234,7 +292,7 @@ export class WorkflowExecutor {
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || "Failed to get results",
+        error: error.message || "❌ Failed to get results. Please make sure the model has been trained.",
       };
     }
   }

@@ -15,6 +15,22 @@ class UploadResponse(BaseModel):
     message: str
 
 
+class CleanRequest(BaseModel):
+    pipeline_id: str
+    strategy: str = Field(..., description="Cleaning strategy: drop_rows, drop_columns, mean, median, mode, forward_fill, constant")
+    columns: Optional[List[str]] = Field(default=None, description="Columns to clean (empty = all columns)")
+    fill_value: Optional[str] = Field(default=None, description="Constant value to fill (for constant strategy)")
+
+
+class CleanResponse(BaseModel):
+    message: str
+    missing_before: Dict[str, int]
+    missing_after: Dict[str, int]
+    rows_before: int
+    rows_after: int
+    cleaned_columns: List[str]
+
+
 class PreprocessRequest(BaseModel):
     pipeline_id: str
     scaler_type: str = Field(..., description="standardization or normalization")
@@ -42,13 +58,15 @@ class SplitResponse(BaseModel):
 
 class TrainRequest(BaseModel):
     pipeline_id: str
-    model_type: str = Field(..., description="Model type: logistic_regression, decision_tree, random_forest")
+    model_type: str = Field(..., description="Model type: classification or regression models")
+    task_type: str = Field(default="classification", description="Task type: classification or regression")
 
 
 class TrainResponse(BaseModel):
     model_type: str
-    train_accuracy: float
-    test_accuracy: float
+    task_type: str
+    train_score: float
+    test_score: float
     metrics: Dict[str, Any]
     message: str
 
@@ -60,3 +78,4 @@ class PipelineResults(BaseModel):
     split_info: Optional[Dict[str, Any]] = None
     model_info: Optional[Dict[str, Any]] = None
     training_results: Optional[Dict[str, Any]] = None
+    visualizations: Optional[Dict[str, str]] = None

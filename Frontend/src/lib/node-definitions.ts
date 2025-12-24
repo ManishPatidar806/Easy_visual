@@ -1,5 +1,6 @@
 import {
   Upload,
+  Eraser,
   Wand2,
   Split,
   Cpu,
@@ -22,7 +23,7 @@ export interface ConfigField {
   label: string;
   type: "text" | "textarea" | "select" | "number" | "file" | "multiselect" | "slider" | "radio";
   placeholder?: string;
-  options?: { value: string; label: string }[];
+  options?: { value: string; label: string; taskType?: string }[];
   required?: boolean;
   defaultValue?: any;
   min?: number;
@@ -48,6 +49,52 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         label: "Dataset File",
         type: "file",
         required: true,
+      },
+    ],
+  },
+
+  mlClean: {
+    type: "mlClean",
+    label: "Clean Data",
+    description: "Handle missing values in dataset",
+    category: "ml",
+    icon: Eraser,
+    color: "bg-pink-500",
+    defaultConfig: {
+      strategy: "drop_rows",
+      columns: [],
+      fillValue: "0",
+    },
+    configFields: [
+      {
+        name: "strategy",
+        label: "Missing Value Strategy",
+        type: "select",
+        options: [
+          { value: "drop_rows", label: "Drop Rows with Missing Values" },
+          { value: "drop_columns", label: "Drop Columns with Missing Values" },
+          { value: "mean", label: "Fill with Mean" },
+          { value: "median", label: "Fill with Median" },
+          { value: "mode", label: "Fill with Mode" },
+          { value: "forward_fill", label: "Forward Fill" },
+          { value: "constant", label: "Fill with Constant Value" },
+        ],
+        defaultValue: "drop_rows",
+        required: true,
+      },
+      {
+        name: "columns",
+        label: "Columns to Clean (leave empty for all)",
+        type: "multiselect",
+        required: false,
+      },
+      {
+        name: "fillValue",
+        label: "Constant Fill Value (for constant strategy)",
+        type: "text",
+        placeholder: "0",
+        defaultValue: "0",
+        required: false,
       },
     ],
   },
@@ -125,17 +172,34 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     icon: Cpu,
     color: "bg-emerald-500",
     defaultConfig: {
+      taskType: "classification",
       modelType: "logistic_regression",
     },
     configFields: [
       {
-        name: "modelType",
-        label: "Model Type",
+        name: "taskType",
+        label: "Task Type",
         type: "radio",
         options: [
-          { value: "logistic_regression", label: "Logistic Regression" },
-          { value: "decision_tree", label: "Decision Tree" },
-          { value: "random_forest", label: "Random Forest" },
+          { value: "classification", label: "Classification (Predict Categories)" },
+          { value: "regression", label: "Regression (Predict Numbers)" },
+        ],
+        defaultValue: "classification",
+        required: true,
+      },
+      {
+        name: "modelType",
+        label: "Model Type",
+        type: "select",
+        options: [
+          { value: "logistic_regression", label: "Logistic Regression", taskType: "classification" },
+          { value: "decision_tree", label: "Decision Tree Classifier", taskType: "classification" },
+          { value: "random_forest", label: "Random Forest Classifier", taskType: "classification" },
+          { value: "linear_regression", label: "Linear Regression", taskType: "regression" },
+          { value: "ridge_regression", label: "Ridge Regression", taskType: "regression" },
+          { value: "lasso_regression", label: "Lasso Regression", taskType: "regression" },
+          { value: "decision_tree_regressor", label: "Decision Tree Regressor", taskType: "regression" },
+          { value: "random_forest_regressor", label: "Random Forest Regressor", taskType: "regression" },
         ],
         defaultValue: "logistic_regression",
         required: true,
