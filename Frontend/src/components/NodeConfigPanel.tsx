@@ -22,7 +22,7 @@ export default function NodeConfigPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [width, setWidth] = useState(600); // Increased default for better graph viewing
+  const [width, setWidth] = useState(600);
   const [isResizing, setIsResizing] = useState(false);
 
   const [config, setConfig] = useState<Record<string, any>>(
@@ -116,12 +116,10 @@ export default function NodeConfigPanel({
   };
 
   const getAvailableColumns = (): string[] => {
-    // First check current node's output
     if (node?.data.output?.dataset_info?.column_names) {
       return node.data.output.dataset_info.column_names;
     }
     
-    // If not found, check source node through edges
     const storeState = useWorkflowStore.getState();
     const edges = storeState.edges;
     const allNodes = storeState.nodes;
@@ -138,14 +136,11 @@ export default function NodeConfigPanel({
   };
 
   const getNumericColumns = (): string[] => {
-    // Get column type information from the dataset
     let columnTypes: Record<string, string> = {};
     
-    // First check current node's output
     if (node?.data.output?.dataset_info?.column_types) {
       columnTypes = node.data.output.dataset_info.column_types;
     } else {
-      // If not found, check source node through edges
       const storeState = useWorkflowStore.getState();
       const edges = storeState.edges;
       const allNodes = storeState.nodes;
@@ -159,11 +154,9 @@ export default function NodeConfigPanel({
       }
     }
     
-    // Filter to only numeric columns
     const allColumns = getAvailableColumns();
     return allColumns.filter((col) => {
       const dtype = columnTypes[col] || "";
-      // Check if column type is numeric (int, float, etc.)
       return dtype.includes("int") || dtype.includes("float");
     });
   };
@@ -190,7 +183,7 @@ export default function NodeConfigPanel({
       className="fixed inset-y-0 right-0 bg-white dark:bg-gray-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 z-50 overflow-y-auto"
       style={{ width: `${width}px` }}
     >
-      {/* Resize Handle */}
+      {}
       <div
         className="absolute top-0 left-0 w-1 h-full cursor-ew-resize hover:bg-blue-500 transition-colors z-10"
         onMouseDown={handleMouseDown}
@@ -224,6 +217,25 @@ export default function NodeConfigPanel({
       </div>
 
       <div className="p-4 space-y-4">
+        {}
+        {node.data.type === "mlTrain" && (
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+            <div className="flex items-start gap-2">
+              <span className="text-lg">💡</span>
+              <div className="text-xs text-gray-700 dark:text-gray-300">
+                <div className="font-semibold mb-1 text-blue-900 dark:text-blue-100">How to choose the right model:</div>
+                <ul className="space-y-1 list-disc list-inside">
+                  <li><strong>Classification:</strong> Use when predicting categories (Yes/No, Type A/B/C, etc.)</li>
+                  <li><strong>Regression:</strong> Use when predicting continuous numbers (price, temperature, score, etc.)</li>
+                </ul>
+                <div className="mt-2 text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 p-2 rounded border border-amber-200 dark:border-amber-700">
+                  ⚠️ <strong>Important:</strong> If you get an error about incompatible data, make sure your target column matches the task type!
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {definition.configFields.map((field) => (
           <div key={field.name}>
             <Label className="text-gray-700 dark:text-gray-300">
@@ -267,7 +279,7 @@ export default function NodeConfigPanel({
                 onChange={(e) => handleChange(field.name, e.target.value)}
                 className="mt-1"
               >
-                {/* Dynamically populate target column options for mlSplit */}
+                {}
                 {field.name === "targetColumn" && getAvailableColumns().length > 0 ? (
                   <>
                     <option value="">Select target column...</option>
@@ -278,7 +290,7 @@ export default function NodeConfigPanel({
                     ))}
                   </>
                 ) : field.name === "modelType" ? (
-                  /* Filter models based on task type */
+                  
                   <>
                     <option value="">Select model...</option>
                     {field.options
@@ -301,7 +313,7 @@ export default function NodeConfigPanel({
               </Select>
             )}
 
-            {/* File upload for ML Upload node */}
+            {}
             {field.type === "file" && (
               <div className="mt-1">
                 <input
@@ -328,7 +340,7 @@ export default function NodeConfigPanel({
               </div>
             )}
 
-            {/* Multi-select for preprocessing columns */}
+            {}
             {field.type === "multiselect" && (
               <div className="mt-1 border border-gray-300 dark:border-gray-600 rounded-md p-2 max-h-48 overflow-y-auto bg-white dark:bg-gray-800">
                 {getAvailableColumns().length === 0 ? (
@@ -366,7 +378,7 @@ export default function NodeConfigPanel({
               </div>
             )}
 
-            {/* Radio buttons for model selection */}
+            {}
             {field.type === "radio" && (
               <div className="mt-1 space-y-2">
                 {field.options?.map((option) => (
@@ -381,7 +393,6 @@ export default function NodeConfigPanel({
                       checked={(config[field.name] || field.defaultValue) === option.value}
                       onChange={(e) => {
                         handleChange(field.name, e.target.value);
-                        // Reset modelType when taskType changes
                         if (field.name === "taskType") {
                           const defaultModel = e.target.value === "classification" 
                             ? "logistic_regression" 
@@ -401,7 +412,7 @@ export default function NodeConfigPanel({
           </div>
         ))}
 
-        {/* Display dataset info for Upload node */}
+        {}
         {node.data.type === "mlUpload" && node.data.output?.dataset_info && (
           <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
@@ -454,7 +465,7 @@ export default function NodeConfigPanel({
           </div>
         )}
 
-        {/* Display cleaning info for Clean node */}
+        {}
         {node.data.type === "mlClean" && node.data.output?.missing_before && (
           <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md">
             <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
@@ -519,7 +530,7 @@ export default function NodeConfigPanel({
           </div>
         )}
 
-        {/* Display preprocess info for Preprocess node */}
+        {}
         {node.data.type === "mlPreprocess" && node.data.output?.processed && (
           <div className="mt-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg">
             <h4 className="text-sm font-semibold text-indigo-900 dark:text-indigo-100 mb-3 flex items-center gap-2">
@@ -555,7 +566,7 @@ export default function NodeConfigPanel({
           </div>
         )}
 
-        {/* Display split info for Split node */}
+        {}
         {node.data.type === "mlSplit" && node.data.output?.train_size && (
           <div className="mt-4 p-4 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg">
             <h4 className="text-sm font-semibold text-cyan-900 dark:text-cyan-100 mb-3 flex items-center gap-2">
@@ -608,7 +619,7 @@ export default function NodeConfigPanel({
           </div>
         )}
 
-        {/* Display metrics for Train node */}
+        {}
         {node.data.type === "mlTrain" && node.data.output && (node.data.output.test_accuracy !== undefined || node.data.output.test_score !== undefined) && (() => {
           const taskType = node.data.output.task_type || 'classification';
           const isClassification = taskType === 'classification';
@@ -750,10 +761,10 @@ export default function NodeConfigPanel({
           );
         })()}
 
-        {/* Display results for Results node */}
+        {}
         {node.data.type === "mlResults" && node.data.output?.model_info?.metrics && (
           <div className="mt-4 space-y-4">
-            {/* Quick Summary Card */}
+            {}
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                 <span>🎓 Your Model's Report Card</span>
@@ -789,7 +800,7 @@ export default function NodeConfigPanel({
               </div>
             </div>
 
-            {/* Helpful tip box */}
+            {}
             <div className="p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md">
               <div className="flex items-start gap-2">
                 <span className="text-lg">💡</span>
@@ -812,7 +823,7 @@ export default function NodeConfigPanel({
               </div>
             </div>
 
-            {/* Visualizations */}
+            {}
             {node.data.output.visualizations && (
               <div className="space-y-4">
                 <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">

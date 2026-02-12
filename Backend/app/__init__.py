@@ -1,3 +1,3 @@
-"""ML Pipeline Builder Backend Application"""
+"""EasyVisual Backend Application"""
 
 __version__ = "1.0.0"

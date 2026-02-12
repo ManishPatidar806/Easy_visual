@@ -7,7 +7,7 @@ from pathlib import Path
 class Settings(BaseSettings):
     # API Configuration
     API_V1_PREFIX: str = "/api"
-    PROJECT_NAME: str = "ML Pipeline Builder"
+    PROJECT_NAME: str = "EasyVisual"
     VERSION: str = "1.0.0"
     DESCRIPTION: str = "No-Code Machine Learning Pipeline Builder API"
     ENVIRONMENT: str = "development"  # development, staging, production

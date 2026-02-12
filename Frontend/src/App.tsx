@@ -5,8 +5,12 @@ import Home from './pages/Home'
 function App() {
   return (
     <Router>
+      {}
       <Routes>
+        {}
         <Route path="/" element={<Landing />} />
+        
+        {}
         <Route path="/app" element={<Home />} />
       </Routes>
     </Router>

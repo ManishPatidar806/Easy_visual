@@ -1,3 +1,5 @@
+// HOME PAGE: The main ML workflow builder
+// This is where users drag nodes, connect them, and run their ML pipeline
 
 import React, { useCallback, useState, useEffect } from "react";
 import ReactFlow, {
@@ -18,48 +20,44 @@ import "reactflow/dist/style.css";
 import Sidebar from "@/components/Sidebar";
 import CustomNode from "@/components/CustomNode";
 import NodeConfigPanel from "@/components/NodeConfigPanel";
-
 import { useWorkflowStore } from "@/lib/store";
 import { nodeDefinitions } from "@/lib/node-definitions";
 import { WorkflowNode, NodeData } from "@/lib/types";
 import { WorkflowExecutor } from "@/lib/executor";
 
+// Tell ReactFlow to use our custom node design
 const nodeTypes: NodeTypes = {
   custom: CustomNode,
 };
 
+// Counter to give each node a unique ID
+// Counter to give each node a unique ID
 let nodeIdCounter = 0;
 
+// MAIN COMPONENT
 export default function Home() {
+  // Get workflow data and functions from our store (global state)
   const { nodes, edges, addNode, addEdge, updateNode, setNodes, setEdges } =
     useWorkflowStore();
   
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+  // Local state (only for this component)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null); // Which node is selected
+  const [isExecuting, setIsExecuting] = useState(false);  // Is workflow running?
+  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null); // ReactFlow library instance
 
-
+  // FUNCTION: When user connects two nodes with a line
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
-      if (!connection.source || !connection.target) return;
-
-      const existingConnection = edges.find(
-        (edge) => (edge as any).target === connection.target
-      );
-
-      if (existingConnection) {
-        const { edges: currentEdges } = useWorkflowStore.getState();
-        setEdges(currentEdges.filter((edge) => edge.id !== existingConnection.id));
-      }
-
+      // Create the edge (connection line)
       const edge = {
         ...connection,
-        id: `e${connection.source}-${connection.target}`,
-        type: "smoothstep",
-        animated: true,
+        id: `e${connection.source}-${connection.target}`,  // Unique ID
+        type: "smoothstep",  // Curved line style
+        animated: true,      // Make it animated (dots moving)
       };
-      addEdge(edge as any);
+      addEdge(edge as any);  // Add to store
     },
-    [addEdge, edges, setEdges]
+    [addEdge]
   );
 
   const handleNodesChange = useCallback(
@@ -68,8 +66,7 @@ export default function Home() {
         if (change.type === "remove") {
           const { nodes: currentNodes } = useWorkflowStore.getState();
           setNodes(currentNodes.filter((node) => node.id !== change.id));
-        } 
-        else if (change.type === "position" && "position" in change) {
+        } else if (change.type === "position" && "position" in change) {
           const node = nodes.find((n) => n.id === change.id);
           if (node && change.position) {
             const updatedNodes = nodes.map((n) =>
@@ -138,22 +135,16 @@ export default function Home() {
     []
   );
 
-  const onNodeClick = useCallback(
-    (_event: React.MouseEvent, node: any) => {
-      if (node.data.type === "mlResults" && node.data.output?.model_info?.metrics) {
-        setSelectedNodeId(node.id);
-      }
-    },
-    []
-  );
-
+  // Handle keyboard delete
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.key === "Delete" || event.key === "Backspace") && selectedNodeId) {
+        // Prevent default backspace navigation
         if (event.key === "Backspace") {
           event.preventDefault();
         }
         
+        // Don't delete if user is typing in an input
         const target = event.target as HTMLElement;
         if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
           return;
@@ -172,8 +163,10 @@ export default function Home() {
     (nodeId: string) => {
       const { nodes: currentNodes, edges: currentEdges } = useWorkflowStore.getState();
       
+      // Remove the node
       setNodes(currentNodes.filter((node) => node.id !== nodeId));
       
+      // Remove connected edges
       setEdges(currentEdges.filter((edge) => 
         (edge as any).source !== nodeId && (edge as any).target !== nodeId
       ));
@@ -181,27 +174,35 @@ export default function Home() {
     [setNodes, setEdges]
   );
 
-  
-  const executeFromNode = async (startNodeId: string) => {
+  const executeWorkflow = async () => {
+    if (nodes.length === 0) {
+      alert("Add some nodes to the canvas first!");
+      return;
+    }
+
+    setIsExecuting(true);
     const executor = new WorkflowExecutor();
+
+    const triggerNodes = nodes.filter(
+      (node) => !edges.some((edge) => (edge as any).target === node.id)
+    );
+
+    if (triggerNodes.length === 0) {
+      alert("Add a trigger node to start the workflow!");
+      setIsExecuting(false);
+      return;
+    }
+
+    nodes.forEach((node) => {
+      updateNode(node.id, {
+        output: undefined,
+        error: undefined,
+        isExecuting: false,
+      });
+    });
 
     const executedNodes = new Set<string>();
     const nodeOutputs: Record<string, any> = {};
-
-    const getUpstreamNodes = (nodeId: string): string[] => {
-      const upstreamEdges = edges.filter((edge) => (edge as any).target === nodeId);
-      const upstreamNodeIds: string[] = [];
-      
-      for (const edge of upstreamEdges) {
-        const sourceId = (edge as any).source;
-        upstreamNodeIds.push(...getUpstreamNodes(sourceId), sourceId);
-      }
-      
-      return upstreamNodeIds;
-    };
-
-    const upstreamNodeIds = getUpstreamNodes(startNodeId);
-    const allNodesToExecute = [...new Set([...upstreamNodeIds, startNodeId])];
 
     const executeNodeChain = async (nodeId: string, input: any = null) => {
       if (executedNodes.has(nodeId)) return;
@@ -227,12 +228,7 @@ export default function Home() {
           });
           nodeOutputs[nodeId] = result.output;
 
-          if (node.data.type === "mlResults" && result.output?.model_info?.metrics) {
-            setTimeout(() => setSelectedNodeId(nodeId), 300);
-          }
-
           const connectedEdges = edges.filter((edge) => (edge as any).source === nodeId);
-          
           for (const edge of connectedEdges) {
             await executeNodeChain((edge as any).target, result.output);
           }
@@ -250,35 +246,23 @@ export default function Home() {
       }
     };
 
-    const rootNodes = allNodesToExecute.filter(
-      (nodeId) => !edges.some((edge) => 
-        (edge as any).target === nodeId && 
-        allNodesToExecute.includes((edge as any).source)
-      )
-    );
-
     try {
-      for (const rootNodeId of rootNodes) {
-        await executeNodeChain(rootNodeId);
+      for (const triggerNode of triggerNodes) {
+        await executeNodeChain(triggerNode.id);
       }
     } catch (error) {
       console.error("Workflow execution error:", error);
+    } finally {
+      setIsExecuting(false);
     }
   };
 
-  useEffect(() => {
-    (window as any).__executeFromNode = executeFromNode;
-    return () => {
-      delete (window as any).__executeFromNode;
-    };
-  }, [executeFromNode]);
-
   return (
     <div className="flex h-screen">
-      {}
-      <Sidebar />
-      
-      {}
+      <Sidebar
+        onExecute={executeWorkflow}
+        isExecuting={isExecuting}
+      />
       <div className="flex-1">
         <ReactFlow
           nodes={nodes}
@@ -290,19 +274,13 @@ export default function Home() {
           onDrop={onDrop}
           onDragOver={onDragOver}
           onNodeDoubleClick={onNodeDoubleClick}
-          onNodeClick={onNodeClick}
           nodeTypes={nodeTypes}
           fitView
           className="bg-gray-50 dark:bg-gray-900"
           deleteKeyCode={["Delete", "Backspace"]}
         >
-          {}
           <Background color="#aaa" gap={16} />
-          
-          {}
           <Controls />
-          
-          {}
           <MiniMap
             nodeColor={(node: any) => {
               const definition = nodeDefinitions[node.data.type];
@@ -318,7 +296,6 @@ export default function Home() {
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
           />
 
-          {}
           <Panel
             position="top-center"
             className="bg-white dark:bg-gray-800 px-4 py-2 rounded-md shadow-sm border border-gray-200 dark:border-gray-700"
@@ -337,7 +314,6 @@ export default function Home() {
         </ReactFlow>
       </div>
 
-      {}
       {selectedNodeId && (
         <NodeConfigPanel
           nodeId={selectedNodeId}

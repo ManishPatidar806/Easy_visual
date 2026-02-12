@@ -375,6 +375,57 @@ class MLService:
                 "❌ Training data is empty! This shouldn't happen. Please try running the pipeline from the beginning."
             )
         
+        # Check for NaN values in features
+        if X_train.isnull().any().any():
+            null_cols = X_train.columns[X_train.isnull().any()].tolist()
+            raise ValueError(
+                f"❌ Your data contains missing values (NaN) in columns: {', '.join(null_cols)}. \n"
+                "Please add a 'Clean Data' node before training to handle missing values."
+            )
+        
+        # Check for NaN values in target
+        if np.isnan(y_train).any():
+            raise ValueError(
+                "❌ Your target column contains missing values (NaN). \n"
+                "Please clean your data or choose a different target column without missing values."
+            )
+        
+        # Validate data compatibility with model type
+        unique_values = len(np.unique(y_train))
+        y_train_series = pd.Series(y_train)
+        
+        # Determine if target is classification or regression
+        if model_type in ["logistic_regression", "decision_tree", "random_forest"]:
+            # Classification model - check if target is suitable
+            if unique_values > 50:
+                raise ValueError(
+                    f"❌ Your target column has {unique_values} unique values, which suggests continuous data. \n"
+                    "Classification models work best with categorical data (like Yes/No, or categories A/B/C). \n"
+                    "💡 Try using a Regression model instead (Linear, Ridge, or Lasso Regression)."
+                )
+            if unique_values == 1:
+                raise ValueError(
+                    "❌ Your target column has only 1 unique value. Model cannot learn from this! \n"
+                    "Please choose a different target column with multiple categories."
+                )
+        else:
+            # Regression model - check if target is numeric and suitable
+            if unique_values < 10:
+                raise ValueError(
+                    f"❌ Your target column has only {unique_values} unique values, which suggests categorical data. \n"
+                    "Regression models work best with continuous numeric data (like prices, temperatures). \n"
+                    "💡 Try using a Classification model instead (Logistic Regression, Decision Tree, or Random Forest)."
+                )
+            # Check if target is actually numeric
+            try:
+                float(y_train[0])
+            except (ValueError, TypeError):
+                raise ValueError(
+                    "❌ Your target column contains non-numeric values. \n"
+                    "Regression models require numeric target values. \n"
+                    "💡 Either use a Classification model or select a numeric target column."
+                )
+        
         # Classification models
         if model_type == "logistic_regression":
             model = LogisticRegression(random_state=settings.RANDOM_STATE, max_iter=1000)
@@ -410,19 +461,59 @@ class MLService:
         
         try:
             model.fit(X_train, y_train)
+        except ValueError as e:
+            error_msg = str(e)
+            if "could not convert" in error_msg.lower() or "invalid value" in error_msg.lower():
+                raise ValueError(
+                    "❌ Your data contains invalid values that the model cannot process. \n"
+                    "This usually means there are non-numeric values in your features. \n"
+                    "💡 Please use the 'Preprocess' node to convert categorical columns to numbers."
+                )
+            elif "inf" in error_msg.lower():
+                raise ValueError(
+                    "❌ Your data contains infinite values (inf) which cannot be used for training. \n"
+                    "💡 Please clean your data to remove or replace infinite values."
+                )
+            else:
+                raise ValueError(
+                    f"❌ Model training failed! Your data might not be compatible with this model type. \n"
+                    f"Error: {str(e)}"
+                )
         except Exception as e:
             raise ValueError(
-                f"❌ Model training failed! This can happen if your data has issues (missing values, wrong format, etc.). "
+                f"❌ Model training failed! This can happen if your data has issues (wrong format, incompatible types, etc.). \n"
                 f"Error details: {str(e)}"
             )
         
         y_train_pred = model.predict(X_train)
         y_test_pred = model.predict(X_test)
         
+        # Check for NaN in predictions
+        if np.isnan(y_train_pred).any() or np.isnan(y_test_pred).any():
+            raise ValueError(
+                "❌ Model produced invalid predictions (NaN values). \n"
+                "This usually happens when the data is not suitable for the selected model. \n"
+                "💡 Try: \n"
+                "1. Using a different model type \n"
+                "2. Cleaning your data more thoroughly \n"
+                "3. Removing columns with too many missing values"
+            )
+        
         # Calculate metrics based on task type
         if task_type == "classification":
             train_score = accuracy_score(y_train, y_train_pred)
             test_score = accuracy_score(y_test, y_test_pred)
+            
+            # Check if scores are valid
+            if np.isnan(train_score) or np.isnan(test_score):
+                raise ValueError(
+                    "❌ Model evaluation produced invalid scores (NaN). \n"
+                    "This means the model couldn't learn from your data properly. \n"
+                    "💡 Your data might not be suitable for classification. Try:\n"
+                    "1. Checking if your target column has clear categories\n"
+                    "2. Ensuring all features are numeric\n"
+                    "3. Using a regression model if your target is continuous numeric data"
+                )
             
             try:
                 precision = precision_score(y_test, y_test_pred, average='weighted', zero_division=0)
@@ -443,6 +534,17 @@ class MLService:
         else:  # regression
             train_score = r2_score(y_train, y_train_pred)
             test_score = r2_score(y_test, y_test_pred)
+            
+            # Check if scores are valid
+            if np.isnan(train_score) or np.isnan(test_score) or np.isinf(train_score) or np.isinf(test_score):
+                raise ValueError(
+                    "❌ Model evaluation produced invalid scores (NaN or Inf). \n"
+                    "This means the model couldn't learn from your data properly. \n"
+                    "💡 Your data might not be suitable for regression. Try:\n"
+                    "1. Checking if your target column contains continuous numeric values\n"
+                    "2. Ensuring all features are numeric\n"
+                    "3. Using a classification model if your target has distinct categories"
+                )
             
             mae = mean_absolute_error(y_test, y_test_pred)
             mse = mean_squared_error(y_test, y_test_pred)

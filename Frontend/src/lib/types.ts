@@ -1,3 +1,4 @@
+
 import type { Node, Edge } from "reactflow";
 
 export type NodeType =
@@ -24,6 +25,7 @@ export type WorkflowEdge = Edge;
 export interface WorkflowState {
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
+  
   addNode: (node: WorkflowNode) => void;
   updateNode: (id: string, data: Partial<NodeData>) => void;
   deleteNode: (id: string) => void;

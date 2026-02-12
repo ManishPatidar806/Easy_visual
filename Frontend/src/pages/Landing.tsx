@@ -32,14 +32,14 @@ const slides: Slide[] = [
                   <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 </div>
                 <div className="flex-1 bg-gray-100 dark:bg-gray-900 rounded px-3 py-1 text-xs text-gray-600 dark:text-gray-400 text-center">
-                  localhost:3000 - ML Pipeline Builder
+                  localhost:3000 - EasyVisual
                 </div>
               </div>
               {/* App Content - Step 1 */}
               <div className="flex h-full">
                 {/* Sidebar */}
                 <div className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 p-3 overflow-y-auto">
-                  <div className="text-sm font-bold text-gray-900 dark:text-white mb-3">ML Pipeline Builder</div>
+                  <div className="text-sm font-bold text-gray-900 dark:text-white mb-3">EasyVisual</div>
                   <div className="space-y-2">
                     <div className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg cursor-move">
                       <div className="flex items-start gap-2">
@@ -174,12 +174,12 @@ const slides: Slide[] = [
                   <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 </div>
                 <div className="flex-1 bg-gray-100 dark:bg-gray-900 rounded px-3 py-1 text-xs text-gray-600 dark:text-gray-400 text-center">
-                  localhost:3000 - ML Pipeline Builder
+                  localhost:3000 - EasyVisual
                 </div>
               </div>
               <div className="flex h-full">
                 <div className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 p-3 overflow-y-auto">
-                  <div className="text-sm font-bold text-gray-900 dark:text-white mb-3">ML Pipeline Builder</div>
+                  <div className="text-sm font-bold text-gray-900 dark:text-white mb-3">EasyVisual</div>
                   <div className="space-y-2">
                     <div className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg opacity-50">
                       <div className="flex items-start gap-2">
@@ -332,12 +332,12 @@ const slides: Slide[] = [
                   <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 </div>
                 <div className="flex-1 bg-gray-100 dark:bg-gray-900 rounded px-3 py-1 text-xs text-gray-600 dark:text-gray-400 text-center">
-                  localhost:3000 - ML Pipeline Builder
+                  localhost:3000 - EasyVisual
                 </div>
               </div>
               <div className="flex h-full">
                 <div className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 p-3 overflow-y-auto">
-                  <div className="text-sm font-bold text-gray-900 dark:text-white mb-3">ML Pipeline Builder</div>
+                  <div className="text-sm font-bold text-gray-900 dark:text-white mb-3">EasyVisual</div>
                   <div className="space-y-2">
                     <div className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg opacity-50">
                       <div className="flex items-start gap-2">
@@ -506,12 +506,12 @@ const slides: Slide[] = [
                   <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 </div>
                 <div className="flex-1 bg-gray-100 dark:bg-gray-900 rounded px-3 py-1 text-xs text-gray-600 dark:text-gray-400 text-center">
-                  localhost:3000 - ML Pipeline Builder
+                  localhost:3000 - EasyVisual
                 </div>
               </div>
               <div className="flex h-full">
                 <div className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 p-3 overflow-y-auto">
-                  <div className="text-sm font-bold text-gray-900 dark:text-white mb-3">ML Pipeline Builder</div>
+                  <div className="text-sm font-bold text-gray-900 dark:text-white mb-3">EasyVisual</div>
                   <div className="space-y-2">
                     <div className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg opacity-50">
                       <div className="flex items-start gap-2">
@@ -644,12 +644,12 @@ const slides: Slide[] = [
                   <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 </div>
                 <div className="flex-1 bg-gray-100 dark:bg-gray-900 rounded px-3 py-1 text-xs text-gray-600 dark:text-gray-400 text-center">
-                  localhost:3000 - ML Pipeline Builder
+                  localhost:3000 - EasyVisual
                 </div>
               </div>
               <div className="flex h-full">
                 <div className="w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 p-3 overflow-y-auto">
-                  <div className="text-sm font-bold text-gray-900 dark:text-white mb-3">ML Pipeline Builder</div>
+                  <div className="text-sm font-bold text-gray-900 dark:text-white mb-3">EasyVisual</div>
                   <div className="space-y-2">
                     <div className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg opacity-50">
                       <div className="flex items-start gap-2">
@@ -910,15 +910,12 @@ export default function Landing() {
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-gray-900 dark:text-white tracking-tight">
-                  ML Pipeline Builder
+                  EasyVisual
                 </h1>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-300">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="font-medium">10K+ learners</span>
-              </div>
+            
               <Button
                 onClick={() => navigate("/app")}
                 className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-5"
@@ -934,15 +931,7 @@ export default function Landing() {
       <section className="max-w-7xl mx-auto px-6 lg:px-8 pt-16 pb-12 md:pt-24 md:pb-20">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
-            <div className="inline-block mb-6">
-              <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-md text-sm">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                </span>
-                Free for students • No credit card needed
-              </div>
-            </div>
+            
             <h2 className="text-5xl md:text-7xl font-bold text-gray-900 dark:text-white mb-7 leading-[1.1] tracking-tight">
               Build ML pipelines
               <br />
@@ -1004,7 +993,7 @@ export default function Landing() {
                   <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 </div>
                 <div className="flex-1 text-center">
-                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">ML Pipeline Builder</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">EasyVisual</span>
                 </div>
               </div>
               <div className="space-y-3">
@@ -1222,7 +1211,7 @@ export default function Landing() {
                   <div className="w-8 h-8 bg-purple-600 rounded-lg rotate-3"></div>
                   <div className="absolute inset-0 w-8 h-8 bg-indigo-600 rounded-lg -rotate-3"></div>
                 </div>
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">ML Pipeline Builder</span>
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">EasyVisual</span>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400 max-w-sm">
                 A visual learning tool for understanding machine learning pipelines through hands-on practice.

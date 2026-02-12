@@ -1,38 +1,35 @@
+// ========================================
+// CUSTOM NODE COMPONENT
+// ========================================
+// This defines how each ML pipeline node looks (the boxes on the canvas)
+// Each node shows:
+// - An icon and title (e.g., "Upload Dataset")
+// - Status (running, success, error)
+// - Results summary
+// - Connection handles (dots on left/right to connect nodes)
+
 import { memo } from "react";
 import { Handle, Position, NodeProps, useReactFlow } from "reactflow";
 import { nodeDefinitions } from "@/lib/node-definitions";
 import { WorkflowNode } from "@/lib/types";
-import { Settings, CheckCircle, AlertCircle, Loader2, Trash2, Play, Eye } from "lucide-react";
+import { Settings, CheckCircle, AlertCircle, Loader2, Trash2 } from "lucide-react";
 
+// Main component - receives data and selected state from ReactFlow
 function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
+  // Get the node definition (icon, color, description, etc.)
   const definition = nodeDefinitions[data.type];
-  const { deleteElements } = useReactFlow();
+  const { deleteElements } = useReactFlow();  // Function to delete nodes
 
+  // Safety check - if definition not found, don't render
   if (!definition) return null;
 
-  const Icon = definition.icon;
+  const Icon = definition.icon;  // The icon component (Upload, Clean, etc.)
 
+  // ----- FUNCTION: Delete Node -----
+  // Called when user clicks the delete button
   const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation();  // Don't trigger other click events
     deleteElements({ nodes: [{ id }] });
-  };
-
-  const handleRun = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const executeFromNode = (window as any).__executeFromNode;
-    if (executeFromNode) {
-      executeFromNode(id);
-    }
-  };
-
-  const handleViewResults = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const event = new MouseEvent('dblclick', {
-      bubbles: true,
-      cancelable: true,
-      view: window
-    });
-    e.currentTarget.parentElement?.dispatchEvent(event);
   };
 
   return (
@@ -45,33 +42,18 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
         min-w-[200px]
       `}
     >
+      {/* Delete Button - Only show when selected */}
       {selected && (
         <button
           onClick={handleDelete}
           className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-sm flex items-center justify-center transition-colors z-10"
-          title="Delete node (or press Delete key)"
+          title="Delete node (Delete key)"
         >
           <Trash2 className="h-3 w-3" />
         </button>
       )}
 
-      <button
-        onClick={handleRun}
-        disabled={data.isExecuting}
-        className={`absolute -top-2 -left-2 w-6 h-6 text-white rounded-full shadow-md flex items-center justify-center transition-all z-10 ${
-          data.isExecuting 
-            ? 'bg-gray-400 cursor-not-allowed' 
-            : 'bg-green-500 hover:bg-green-600 hover:scale-110'
-        }`}
-        title="Run from this node"
-      >
-        {data.isExecuting ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
-        ) : (
-          <Play className="h-3 w-3" />
-        )}
-      </button>
-
+      {/* Input Handle - Hide for Upload node (first step) */}
       {data.type !== "mlUpload" && (
         <Handle
           type="target"
@@ -80,11 +62,11 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
         />
       )}
 
+      {/* Node Header */}
       <div
         className={`${definition.color} px-3 py-2 rounded-t-md flex items-center gap-2`}
       >
         <Icon className="h-4 w-4 text-white" />
-        
         <span className="font-semibold text-white text-sm flex-1">
           {definition.label}
         </span>
@@ -98,12 +80,12 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
         {data.error && <AlertCircle className="h-4 w-4 text-white" />}
       </div>
 
+      {/* Node Body */}
       <div className="p-3">
         <div className="text-xs text-gray-500 dark:text-gray-400">
           {definition.description}
         </div>
 
-        {}
         {data.config && Object.keys(data.config).length > 0 && (
           <div className="mt-2 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">
             <div className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
@@ -113,16 +95,13 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
           </div>
         )}
 
-        {}
         {data.error && (
-          <div className="mt-2 text-xs bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-2 rounded border border-red-200 dark:border-red-800">
-            <div className="whitespace-pre-line">{data.error}</div>
+          <div className="mt-2 text-xs bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-2 rounded">
+            {data.error}
           </div>
         )}
 
-        {}
-
-        {}
+        {/* Upload node output */}
         {data.output && !data.error && data.type === "mlUpload" && data.output.dataset_info && (
           <div className="mt-2 text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
             <div className="text-green-700 dark:text-green-300 font-medium">✓ Dataset Loaded</div>
@@ -132,7 +111,7 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
           </div>
         )}
 
-        {}
+        {/* Preprocess node output */}
         {data.output && !data.error && data.type === "mlPreprocess" && data.output.processed && (
           <div className="mt-2 text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
             <div className="text-green-700 dark:text-green-300 font-medium">✓ Preprocessed</div>
@@ -142,7 +121,7 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
           </div>
         )}
 
-        {}
+        {/* Split node output */}
         {data.output && !data.error && data.type === "mlSplit" && data.output.train_size && (
           <div className="mt-2 text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
             <div className="text-green-700 dark:text-green-300 font-medium">✓ Data Split</div>
@@ -152,7 +131,7 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
           </div>
         )}
 
-        {}
+        {/* Train node output */}
         {data.output && !data.error && data.type === "mlTrain" && data.output.test_accuracy && (
           <div className="mt-2 text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
             <div className="text-green-700 dark:text-green-300 font-medium">✓ Model Trained</div>
@@ -162,29 +141,19 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
           </div>
         )}
 
-        {}
+        {/* Results node output */}
         {data.output && !data.error && data.type === "mlResults" && data.output.model_info?.metrics && (
-          <div className="mt-2 space-y-2">
-            <div className="text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
-              <div className="text-green-700 dark:text-green-300 font-medium">📊 Results Ready</div>
-              <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1">
-                Accuracy: {(data.output.model_info.metrics.test_accuracy * 100).toFixed(1)}%
-              </div>
+          <div className="mt-2 text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
+            <div className="text-green-700 dark:text-green-300 font-medium">📊 Results Ready</div>
+            <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1">
+              Accuracy: {(data.output.model_info.metrics.test_accuracy * 100).toFixed(1)}%
             </div>
-            <button
-              onClick={handleViewResults}
-              className="w-full py-2 px-3 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded transition-colors flex items-center justify-center gap-2"
-            >
-              <Eye className="h-3 w-3" />
-              View Charts & Details
-            </button>
+            <div className="text-[9px] text-gray-500 dark:text-gray-400 mt-1">Click to view charts</div>
           </div>
         )}
       </div>
 
-      {}
-      {}
-      {}
+      {/* Output Handle - Hide for Results node (last step) */}
       {data.type !== "mlResults" && (
         <Handle
           type="source"

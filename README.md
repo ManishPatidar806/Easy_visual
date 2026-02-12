@@ -1,4 +1,4 @@
-# ML Pipeline Builder
+# EasyVisual
 
 A modern, no-code machine learning pipeline builder with a visual drag-and-drop interface. Build, train, and evaluate ML models without writing code.
 
@@ -46,8 +46,8 @@ A modern, no-code machine learning pipeline builder with a visual drag-and-drop 
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
-cd ML-workflow
+git clone https://github.com/ManishPatidar806/Easy_visual.git
+cd Easy_visual
 ```
 
 ### 2. Backend Setup

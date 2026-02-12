@@ -1,8 +1,6 @@
-// API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
-const REQUEST_TIMEOUT = 30000; // 30 seconds
+const REQUEST_TIMEOUT = 30000;
 
-// Custom error class
 class APIError extends Error {
   constructor(public statusCode: number, message: string) {
     super(message);
@@ -10,7 +8,6 @@ class APIError extends Error {
   }
 }
 
-// Helper function for API requests with timeout and error handling
 async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
@@ -31,7 +28,6 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
   }
 }
 
-// Helper function to handle API response
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let errorMessage = 'An error occurred';

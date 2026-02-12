@@ -1,3 +1,4 @@
+
 import { create } from "zustand";
 import { WorkflowState, WorkflowNode, WorkflowEdge } from "./types";
 import { addEdge as addReactFlowEdge, Connection } from "reactflow";
@@ -5,6 +6,7 @@ import { addEdge as addReactFlowEdge, Connection } from "reactflow";
 export const useWorkflowStore = create<WorkflowState>((set) => ({
   nodes: [],
   edges: [],
+
 
   addNode: (node: WorkflowNode) => {
     set((state) => ({
@@ -15,7 +17,9 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
   updateNode: (id: string, data: Partial<WorkflowNode["data"]>) => {
     set((state) => ({
       nodes: state.nodes.map((node) =>
-        node.id === id ? { ...node, data: { ...node.data, ...data } } : node
+        node.id === id 
+          ? { ...node, data: { ...node.data, ...data } }
+          : node
       ),
     }));
   },

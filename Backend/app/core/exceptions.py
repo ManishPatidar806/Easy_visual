@@ -1,4 +1,4 @@
-"""Custom exceptions for the ML Pipeline Builder"""
+"""Custom exceptions for the EasyVisual"""
 
 
 class MLPipelineException(Exception):

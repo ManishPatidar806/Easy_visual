@@ -1,5 +1,5 @@
 """
-Constants for the ML Pipeline Builder
+Constants for the EasyVisual
 """
 
 # Model Types

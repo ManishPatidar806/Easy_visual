@@ -1,15 +1,12 @@
 import React, { useState } from "react";
 import { nodeDefinitions, NodeDefinition } from "@/lib/node-definitions";
-import { Play, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkflowStore } from "@/lib/store";
 
-interface SidebarProps {
-  onExecute: () => void;
-  isExecuting: boolean;
-}
+interface SidebarProps {}
 
-export default function Sidebar({ onExecute, isExecuting }: SidebarProps) {
+export default function Sidebar({}: SidebarProps) {
   const { clearWorkflow } = useWorkflowStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [width, setWidth] = useState(320); // 80 * 4 = 320px (w-80)
@@ -97,22 +94,17 @@ export default function Sidebar({ onExecute, isExecuting }: SidebarProps) {
         <div className="mb-6 flex items-start justify-between">
           <div className="flex-1">
             <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-              ML Pipeline Builder
+              EasyVisual
             </h2>
 
             <div className="flex gap-2">
-              <Button onClick={onExecute} disabled={isExecuting} className="flex-1">
-                <Play className="mr-2 h-4 w-4" />
-                {isExecuting ? "Running..." : "Run Pipeline"}
-              </Button>
-
               <Button 
                 onClick={clearWorkflow} 
                 variant="outline"
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950"
-                title="Clear Workflow"
+                className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="mr-2 h-4 w-4" />
+                Clear Workflow
               </Button>
             </div>
           </div>
@@ -166,11 +158,11 @@ export default function Sidebar({ onExecute, isExecuting }: SidebarProps) {
           <span>Quick Start</span>
         </h3>
         <ol className="text-xs text-gray-700 dark:text-gray-300 space-y-1 list-decimal list-inside">
-          <li>Drag Upload Dataset to canvas</li>
-          <li>Add Preprocess, Split, Train, Results</li>
-          <li>Connect them in order</li>
+          <li>Drag nodes from below to canvas</li>
+          <li>Connect them in order (drag from blue dots)</li>
           <li>Configure each node (double-click)</li>
-          <li>Click "Run Pipeline"</li>
+          <li>Click the ▶ Run button on each node</li>
+          <li>View results and metrics</li>
         </ol>
       </div>
       </div>
