@@ -27,5 +27,6 @@
     }
   },
   "include": ["src"],
+  "exclude": ["src/pages/*-Complex.tsx", "src/pages/*-BACKUP.tsx", "src/components/*-Complex.tsx", "src/components/*-BACKUP.tsx", "backups"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
