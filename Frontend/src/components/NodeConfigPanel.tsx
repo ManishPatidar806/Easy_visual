@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useWorkflowStore } from "@/lib/store";
+import { useWorkflow } from "@/lib/WorkflowContext";
 import { nodeDefinitions } from "@/lib/node-definitions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ export default function NodeConfigPanel({
   nodeId,
   onClose,
 }: NodeConfigPanelProps) {
-  const { nodes, updateNode } = useWorkflowStore();
+  const { nodes, edges, updateNode } = useWorkflow();
   const node = nodes.find((n) => n.id === nodeId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -120,9 +120,8 @@ export default function NodeConfigPanel({
       return node.data.output.dataset_info.column_names;
     }
     
-    const storeState = useWorkflowStore.getState();
-    const edges = storeState.edges;
-    const allNodes = storeState.nodes;
+    // Get edges and nodes from Context (already available)
+    const allNodes = nodes;
     
     const incomingEdge = edges.find((e: any) => e.target === nodeId);
     if (incomingEdge) {
@@ -141,9 +140,8 @@ export default function NodeConfigPanel({
     if (node?.data.output?.dataset_info?.column_types) {
       columnTypes = node.data.output.dataset_info.column_types;
     } else {
-      const storeState = useWorkflowStore.getState();
-      const edges = storeState.edges;
-      const allNodes = storeState.nodes;
+      // Get nodes from Context (already available)
+      const allNodes = nodes;
       
       const incomingEdge = edges.find((e: any) => e.target === nodeId);
       if (incomingEdge) {

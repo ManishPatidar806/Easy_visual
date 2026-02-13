@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { Handle, Position, NodeProps, useReactFlow } from "reactflow";
 import { nodeDefinitions } from "@/lib/node-definitions";
-import { WorkflowNode } from "@/lib/types";
+import { WorkflowNode } from "@/lib/WorkflowContext";
 import { Settings, CheckCircle, AlertCircle, Loader2, Trash2, Play, Eye } from "lucide-react";
 
 function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
