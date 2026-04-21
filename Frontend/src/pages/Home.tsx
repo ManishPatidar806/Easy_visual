@@ -19,6 +19,7 @@ import NodeConfigPanel from "@/components/NodeConfigPanel";
 import { useWorkflow } from "@/lib/WorkflowContext";
 import { nodeDefinitions } from "@/lib/node-definitions";
 import { WorkflowExecutor } from "@/lib/executor";
+import { isFirstBackendRequestInSession } from "@/api/client";
 
 // ===== SETUP =====
 
@@ -41,6 +42,9 @@ export default function Home() {
   
   // Store ReactFlow instance to convert screen coords to canvas coords
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+
+  const hasExecutingNode = nodes.some((node) => node.data?.isExecuting);
+  const showColdStartBanner = hasExecutingNode && isFirstBackendRequestInSession();
 
   // ===== EVENT HANDLERS =====
 
@@ -310,6 +314,17 @@ export default function Home() {
               connections
             </div>
           </Panel>
+
+          {showColdStartBanner && (
+            <Panel
+              position="top-center"
+              className="mt-14 max-w-xl bg-amber-50 dark:bg-amber-900/30 px-4 py-2 rounded-md shadow-sm border border-amber-200 dark:border-amber-800"
+            >
+              <div className="text-xs text-amber-900 dark:text-amber-200">
+                First request may take 2-3 minutes while Render starts the backend service.
+              </div>
+            </Panel>
+          )}
         </ReactFlow>
       </div>
 

@@ -1,5 +1,17 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 const REQUEST_TIMEOUT = 30000;
+const BACKEND_WARM_KEY = 'backend_warm_session';
+
+function markBackendWarm() {
+  if (typeof window !== 'undefined') {
+    window.sessionStorage.setItem(BACKEND_WARM_KEY, '1');
+  }
+}
+
+export function isFirstBackendRequestInSession(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.sessionStorage.getItem(BACKEND_WARM_KEY) !== '1';
+}
 
 class APIError extends Error {
   constructor(public statusCode: number, message: string) {
@@ -17,6 +29,8 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
       ...options,
       signal: controller.signal,
     });
+    // Any real backend response means the service is already awake for this session.
+    markBackendWarm();
     clearTimeout(timeout);
     return response;
   } catch (error: any) {

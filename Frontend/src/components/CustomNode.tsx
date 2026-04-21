@@ -2,6 +2,7 @@ import { memo } from "react";
 import { Handle, Position, NodeProps, useReactFlow } from "reactflow";
 import { nodeDefinitions } from "@/lib/node-definitions";
 import { WorkflowNode } from "@/lib/WorkflowContext";
+import { isFirstBackendRequestInSession } from "@/api/client";
 import { Settings, CheckCircle, AlertCircle, Loader2, Trash2, Play, Eye } from "lucide-react";
 
 function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
@@ -117,6 +118,12 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
         {data.error && (
           <div className="mt-2 text-xs bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-2 rounded border border-red-200 dark:border-red-800">
             <div className="whitespace-pre-line">{data.error}</div>
+          </div>
+        )}
+
+        {data.isExecuting && isFirstBackendRequestInSession() && (
+          <div className="mt-2 text-xs bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 p-2 rounded border border-amber-200 dark:border-amber-800">
+            First request may take 2-3 minutes while Render starts the backend service.
           </div>
         )}
 
