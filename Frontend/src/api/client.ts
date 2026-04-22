@@ -22,7 +22,10 @@ class APIError extends Error {
 
 async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+  const shouldApplyTimeout = !isFirstBackendRequestInSession();
+  const timeout = shouldApplyTimeout
+    ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+    : null;
   
   try {
     const response = await fetch(url, {
@@ -31,10 +34,14 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
     });
     // Any real backend response means the service is already awake for this session.
     markBackendWarm();
-    clearTimeout(timeout);
+    if (timeout) {
+      clearTimeout(timeout);
+    }
     return response;
   } catch (error: any) {
-    clearTimeout(timeout);
+    if (timeout) {
+      clearTimeout(timeout);
+    }
     if (error.name === 'AbortError') {
       throw new APIError(408, 'Request timeout - please try again');
     }
