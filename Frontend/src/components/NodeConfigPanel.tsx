@@ -459,6 +459,35 @@ export default function NodeConfigPanel({
                   </div>
                 </div>
               )}
+              {node.data.output.dataset_info.sample_rows && node.data.output.dataset_info.sample_rows.length > 0 && (
+                <div className="bg-white dark:bg-blue-950/50 p-3 rounded-lg">
+                  <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-2">Sample Rows (first 5)</div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-blue-200 dark:border-blue-800">
+                          {node.data.output.dataset_info.column_names.map((col: string) => (
+                            <th key={col} className="text-left px-2 py-1 font-mono text-blue-700 dark:text-blue-300 whitespace-nowrap">
+                              {col}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {node.data.output.dataset_info.sample_rows.map((row: Record<string, any>, rowIndex: number) => (
+                          <tr key={rowIndex} className="border-b border-blue-100 dark:border-blue-900 last:border-b-0">
+                            {node.data.output.dataset_info.column_names.map((col: string) => (
+                              <td key={col} className="px-2 py-1 text-blue-900 dark:text-blue-100 whitespace-nowrap">
+                                {row[col] !== undefined && row[col] !== null ? String(row[col]) : ""}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -762,41 +791,69 @@ export default function NodeConfigPanel({
         {}
         {node.data.type === "mlResults" && node.data.output?.model_info?.metrics && (
           <div className="mt-4 space-y-4">
-            {}
+            {(() => {
+              const metrics = node.data.output.model_info.metrics || {};
+              const taskType = node.data.output.model_info.task_type || (metrics.test_r2 !== undefined ? "regression" : "classification");
+              const isClassification = taskType === "classification";
+              const primaryScore = isClassification ? Number(metrics.test_accuracy ?? 0) : Number(metrics.test_r2 ?? 0);
+              const scoreLabel = isClassification ? "Overall Accuracy" : "Test R² Score";
+              const scoreDisplay = isClassification ? `${(primaryScore * 100).toFixed(1)}%` : primaryScore.toFixed(3);
+
+              const statusText = isClassification
+                ? (primaryScore >= 0.9 ? "🌟 Excellent!" : primaryScore >= 0.8 ? "✅ Very Good!" : primaryScore >= 0.7 ? "👍 Good!" : primaryScore >= 0.6 ? "📈 Fair" : "⚠️ Needs Work")
+                : (primaryScore >= 0.8 ? "🌟 Excellent Fit!" : primaryScore >= 0.6 ? "✅ Good Fit" : primaryScore >= 0.4 ? "👍 Moderate Fit" : primaryScore >= 0.2 ? "📈 Weak Fit" : "⚠️ Poor Fit");
+
+              const helpText = isClassification
+                ? (primaryScore >= 0.8
+                  ? "Your classification model is performing well on unseen data."
+                  : primaryScore >= 0.6
+                    ? "The model is learning, but can improve with better features or more data."
+                    : "Model needs improvement. Try better preprocessing, feature selection, or another model.")
+                : (primaryScore >= 0.6
+                  ? "Your regression model explains a good portion of variance in unseen data."
+                  : primaryScore >= 0.2
+                    ? "The model captures some patterns, but there is room for improvement."
+                    : "The model fit is weak. Try cleaning features, removing outliers, or another model.");
+
+              const secondaryMetric = isClassification
+                ? `Precision: ${(Number(metrics.precision ?? 0) * 100).toFixed(1)}%`
+                : `MAE: ${Number(metrics.mae ?? 0).toFixed(3)}`;
+
+              return (
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                <span>🎓 Your Model's Report Card</span>
+                    <span>{isClassification ? "🎓 Classification Report Card" : "📈 Regression Report Card"}</span>
               </h4>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white dark:bg-gray-800 p-3 rounded-md border border-gray-200 dark:border-gray-700 text-center">
-                  <div className="text-xs text-gray-600 dark:text-gray-400 font-medium mb-1">Overall Score</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400 font-medium mb-1">{scoreLabel}</div>
                   <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                    {(node.data.output.model_info.metrics.test_accuracy * 100).toFixed(1)}%
+                        {scoreDisplay}
                   </div>
-                  <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all"
-                      style={{ width: `${node.data.output.model_info.metrics.test_accuracy * 100}%` }}
-                    />
-                  </div>
+                      {isClassification && (
+                        <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all"
+                            style={{ width: `${Math.max(0, Math.min(100, primaryScore * 100))}%` }}
+                          />
+                        </div>
+                      )}
                 </div>
                 <div className="bg-white dark:bg-gray-800 p-3 rounded-md border border-gray-200 dark:border-gray-700">
                   <div className="text-xs text-gray-900 dark:text-white font-medium mb-2">
-                    {node.data.output.model_info.metrics.test_accuracy >= 0.9 ? '🌟 Excellent!' :
-                     node.data.output.model_info.metrics.test_accuracy >= 0.8 ? '✅ Very Good!' :
-                     node.data.output.model_info.metrics.test_accuracy >= 0.7 ? '👍 Good!' :
-                     node.data.output.model_info.metrics.test_accuracy >= 0.6 ? '📈 Fair' : '⚠️ Needs Work'}
+                        {statusText}
                   </div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">
-                    {node.data.output.model_info.metrics.test_accuracy >= 0.8 
-                      ? 'Your model is performing great! It can make accurate predictions.'
-                      : node.data.output.model_info.metrics.test_accuracy >= 0.6
-                      ? 'Model is learning but could improve with more data or tuning.'
-                      : 'Model needs improvement. Try different features or more data.'}
+                        {helpText}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        {secondaryMetric}
                   </div>
                 </div>
               </div>
             </div>
+              );
+            })()}
 
             {}
             <div className="p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md">
@@ -805,9 +862,9 @@ export default function NodeConfigPanel({
                 <div className="text-xs text-gray-700 dark:text-gray-300">
                   <div className="font-semibold mb-1">How to read the charts below:</div>
                   <ul className="space-y-1 list-disc list-inside">
-                    <li><strong>Performance Chart:</strong> Shows how well your model scores on different metrics</li>
-                    <li><strong>Confusion Matrix:</strong> Shows where your model got it right (diagonal) vs wrong</li>
-                    <li><strong>Training vs Testing:</strong> Checks if model learned properly without memorizing</li>
+                    <li><strong>Performance Chart:</strong> Overall model quality on multiple metrics</li>
+                    <li><strong>Middle Chart:</strong> Classification shows confusion matrix, regression shows actual vs predicted plot</li>
+                    <li><strong>Train vs Test:</strong> Checks if model generalizes or overfits</li>
                     {node.data.output.visualizations?.feature_importance && (
                       <li><strong>Feature Importance:</strong> Shows which input data matters most for predictions</li>
                     )}
@@ -844,11 +901,13 @@ export default function NodeConfigPanel({
                 {node.data.output.visualizations.confusion_matrix && (
                   <div className="border border-gray-300 dark:border-gray-700 rounded-md p-3 bg-white dark:bg-gray-900">
                     <div className="text-xs font-semibold text-gray-900 dark:text-white mb-2">
-                      🎯 Confusion Matrix (Prediction Accuracy)
+                      {(node.data.output.model_info?.task_type || "classification") === "regression"
+                        ? "🎯 Actual vs Predicted (Regression)"
+                        : "🎯 Confusion Matrix (Prediction Accuracy)"}
                     </div>
                     <img 
                       src={`data:image/png;base64,${node.data.output.visualizations.confusion_matrix}`}
-                      alt="Confusion Matrix"
+                      alt={(node.data.output.model_info?.task_type || "classification") === "regression" ? "Actual vs Predicted Plot" : "Confusion Matrix"}
                       className="w-full rounded"
                     />
                   </div>

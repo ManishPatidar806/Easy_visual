@@ -160,11 +160,13 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
         )}
 
         {}
-        {data.output && !data.error && data.type === "mlTrain" && data.output.test_accuracy && (
+        {data.output && !data.error && data.type === "mlTrain" && (data.output.test_accuracy !== undefined || data.output.test_score !== undefined) && (
           <div className="mt-2 text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
             <div className="text-green-700 dark:text-green-300 font-medium">✓ Model Trained</div>
             <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1">
-              Accuracy: {(data.output.test_accuracy * 100).toFixed(1)}%
+              {(data.output.task_type || "classification") === "regression"
+                ? `R²: ${(data.output.test_score ?? 0).toFixed(3)}`
+                : `Accuracy: ${(((data.output.test_accuracy ?? data.output.test_score) || 0) * 100).toFixed(1)}%`}
             </div>
           </div>
         )}
@@ -172,12 +174,23 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
         {}
         {data.output && !data.error && data.type === "mlResults" && data.output.model_info?.metrics && (
           <div className="mt-2 space-y-2">
+            {(() => {
+              const metrics = data.output.model_info.metrics || {};
+              const taskType = data.output.model_info.task_type || (metrics.test_r2 !== undefined ? "regression" : "classification");
+              const primaryLabel = taskType === "regression" ? "R²" : "Accuracy";
+              const primaryValue = taskType === "regression"
+                ? Number(metrics.test_r2 ?? 0).toFixed(3)
+                : `${(Number(metrics.test_accuracy ?? 0) * 100).toFixed(1)}%`;
+
+              return (
             <div className="text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
               <div className="text-green-700 dark:text-green-300 font-medium">📊 Results Ready</div>
               <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1">
-                Accuracy: {(data.output.model_info.metrics.test_accuracy * 100).toFixed(1)}%
+                    {primaryLabel}: {primaryValue}
               </div>
             </div>
+              );
+            })()}
             <button
               onClick={handleViewResults}
               className="w-full py-2 px-3 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded transition-colors flex items-center justify-center gap-2"

@@ -7,6 +7,7 @@ class DatasetInfo(BaseModel):
     columns: int
     column_names: List[str]
     column_types: Dict[str, str]
+    sample_rows: Optional[List[Dict[str, Any]]] = None
 
 
 class UploadResponse(BaseModel):
@@ -34,7 +35,7 @@ class CleanResponse(BaseModel):
 class PreprocessRequest(BaseModel):
     pipeline_id: str
     scaler_type: str = Field(..., description="standardization or normalization")
-    columns: List[str] = Field(..., description="Columns to preprocess")
+    columns: Optional[List[str]] = Field(default=None, description="Columns to preprocess (optional; empty means skip preprocessing)")
 
 
 class PreprocessResponse(BaseModel):

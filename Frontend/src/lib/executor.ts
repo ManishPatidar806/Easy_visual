@@ -1,6 +1,18 @@
-import { NodeExecutionContext, NodeExecutionResult } from "./types";
 import { nodeDefinitions } from "./node-definitions";
 import { uploadDataset, cleanData, preprocessData, splitData, trainModel, getResults } from "@/api/client";
+
+interface NodeExecutionContext {
+  nodeId: string;
+  input: any;
+  config: Record<string, any>;
+  previousNodes: Record<string, any>;
+}
+
+interface NodeExecutionResult {
+  success: boolean;
+  output?: any;
+  error?: string;
+}
 
 export class WorkflowExecutor {
   async executeNode(
@@ -144,17 +156,10 @@ export class WorkflowExecutor {
         };
       }
 
-      if (!config.columns || config.columns.length === 0) {
-        return {
-          success: false,
-          error: "❌ No columns selected! Click on this node, then select which numeric columns you want to preprocess. You need to choose at least one column.",
-        };
-      }
-
       const result = await preprocessData(
         input.pipeline_id,
         config.scalerType || "standardization",
-        config.columns
+        config.columns || []
       );
 
       return {
@@ -164,7 +169,8 @@ export class WorkflowExecutor {
           dataset_info: input.dataset_info,
           message: result.message,
           processed: true,
-          processed_columns: result.processed_columns || config.columns,
+          skipped: result.skipped || false,
+          processed_columns: result.processed_columns || config.columns || [],
         },
       };
     } catch (error: any) {

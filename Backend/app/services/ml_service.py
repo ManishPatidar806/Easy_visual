@@ -54,6 +54,7 @@ class MLService:
             "columns": len(df.columns),
             "column_names": df.columns.tolist(),
             "column_types": {col: str(dtype) for col, dtype in df.dtypes.items()},
+            "sample_rows": df.head(5).to_dict('records'),
         }
         
         save_pipeline(pipeline_id, {
@@ -218,7 +219,7 @@ class MLService:
     async def preprocess_data(
         pipeline_id: str,
         scaler_type: str,
-        columns: List[str]
+        columns: List[str] = None
     ) -> Dict[str, Any]:
         pipeline = load_pipeline(pipeline_id)
         if not pipeline:
@@ -228,6 +229,22 @@ class MLService:
             )
         
         df = pd.DataFrame(pipeline["dataset"])
+
+        if columns is None or len(columns) == 0:
+            save_pipeline(pipeline_id, {
+                "dataset": df.to_dict('records'),
+                "preprocessing": {
+                    "scaler_type": scaler_type,
+                    "processed_columns": [],
+                    "skipped": True,
+                },
+            })
+
+            return {
+                "message": "No preprocessing columns selected. Dataset was left unchanged.",
+                "processed_columns": [],
+                "skipped": True,
+            }
         
         # Check if columns exist
         missing_columns = [col for col in columns if col not in df.columns]
@@ -321,11 +338,20 @@ class MLService:
                 "You need at least 4 rows to split into training and testing sets. "
                 "Please upload a dataset with more data."
             )
+
+        unique_target_values = y.nunique()
+        class_like_target = (
+            not pd.api.types.is_numeric_dtype(y)
+            or unique_target_values <= min(20, max(2, len(y) // 10))
+        )
+        stratify_target = y if class_like_target and unique_target_values > 1 else None
         
         X_train, X_test, y_train, y_test = train_test_split(
             X_numeric, y,
             train_size=split_ratio,
-            random_state=settings.RANDOM_STATE
+            random_state=settings.RANDOM_STATE,
+            shuffle=True,
+            stratify=stratify_target,
         )
         
         save_pipeline(pipeline_id, {
@@ -596,148 +622,272 @@ class MLService:
         try:
             metrics = pipeline.get("metrics", {})
             
-            # 1. Simple Performance Overview with explanations
-            if metrics:
+            if task_type == "classification" and metrics:
+                # 1) Classification performance overview
                 fig, ax = plt.subplots(figsize=(10, 6))
-                
-                metric_names = ['Test Accuracy\n(Overall Score)', 
-                               'Precision\n(Correct Predictions)', 
-                               'Recall\n(Found All Cases)', 
-                               'F1 Score\n(Balanced Score)']
+
+                metric_names = [
+                    'Train Accuracy\n(Seen Data)',
+                    'Test Accuracy\n(New Data)',
+                    'Precision\n(Correct Positives)',
+                    'Recall\n(Found Positives)',
+                    'F1 Score\n(Balance)',
+                ]
                 metric_values = [
+                    metrics.get('train_accuracy', 0),
                     metrics.get('test_accuracy', 0),
                     metrics.get('precision', 0),
                     metrics.get('recall', 0),
-                    metrics.get('f1_score', 0)
+                    metrics.get('f1_score', 0),
                 ]
-                
-                # Use easy-to-understand colors: green for good, yellow for moderate
+
                 colors = ['#27ae60' if v >= 0.8 else '#f39c12' if v >= 0.6 else '#e74c3c' for v in metric_values]
                 bars = ax.bar(metric_names, metric_values, color=colors, alpha=0.85, edgecolor='black', linewidth=1.5)
-                
-                # Add percentage labels on bars
+
                 for bar in bars:
                     height = bar.get_height()
-                    percentage = height * 100
-                    ax.text(bar.get_x() + bar.get_width()/2., height + 0.02,
-                           f'{percentage:.1f}%',
-                           ha='center', va='bottom', fontweight='bold', fontsize=14)
-                
+                    ax.text(
+                        bar.get_x() + bar.get_width() / 2,
+                        height + 0.02,
+                        f'{height * 100:.1f}%',
+                        ha='center',
+                        va='bottom',
+                        fontweight='bold',
+                        fontsize=12,
+                    )
+
                 ax.set_ylabel('Score (Higher is Better)', fontsize=13, fontweight='bold')
-                ax.set_title('📊 How Well Did Your Model Perform?', 
-                            fontsize=16, fontweight='bold', pad=20)
+                ax.set_title('📊 Classification Performance Overview', fontsize=16, fontweight='bold', pad=20)
                 ax.set_ylim(0, 1.15)
-                ax.axhline(y=0.8, color='green', linestyle='--', alpha=0.5, label='Good Performance (80%)')
-                ax.axhline(y=0.6, color='orange', linestyle='--', alpha=0.5, label='Fair Performance (60%)')
-                ax.legend(loc='upper right', fontsize=10)
+                ax.axhline(y=0.8, color='green', linestyle='--', alpha=0.5, label='Good (80%+)')
+                ax.axhline(y=0.6, color='orange', linestyle='--', alpha=0.5, label='Fair (60%+)')
+                ax.legend(loc='upper right', fontsize=9)
                 ax.grid(axis='y', alpha=0.4, linestyle='-', linewidth=0.5)
-                
-                # Add explanation text
-                fig.text(0.5, 0.02, 
-                        '💡 Tip: Scores closer to 100% mean your model is doing better!',
-                        ha='center', fontsize=11, style='italic', 
-                        bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8))
-                
+
+                fig.text(
+                    0.5,
+                    0.02,
+                    '💡 If train score is much higher than test score, model may be overfitting.',
+                    ha='center',
+                    fontsize=10,
+                    style='italic',
+                    bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8),
+                )
+
                 plt.tight_layout(rect=[0, 0.05, 1, 1])
-                
                 buf = io.BytesIO()
                 plt.savefig(buf, format='png', dpi=110, bbox_inches='tight')
                 buf.seek(0)
                 visualizations['metrics_chart'] = base64.b64encode(buf.read()).decode('utf-8')
                 plt.close()
-            
-            # 2. Confusion Matrix with beginner-friendly explanation
-            if 'y_test' in pipeline and 'predictions' in pipeline:
-                y_test = np.array(pipeline['y_test'])
-                y_pred = np.array(pipeline['predictions']['test'])
-                
-                cm = confusion_matrix(y_test, y_pred)
-                labels = sorted(list(set(y_test)))
-                
-                fig, ax = plt.subplots(figsize=(9, 7))
-                
-                # Use green-blue color scheme (easier to interpret)
-                sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                           cbar_kws={'label': 'Number of Predictions'},
-                           linewidths=3, linecolor='white',
-                           square=True, ax=ax,
-                           annot_kws={'size': 16, 'weight': 'bold'},
-                           cbar=True, vmin=0)
-                
-                ax.set_xlabel('What the Model Predicted', fontsize=13, fontweight='bold', labelpad=10)
-                ax.set_ylabel('What it Actually Was (Truth)', fontsize=13, fontweight='bold', labelpad=10)
-                ax.set_title('🎯 Prediction Accuracy Check\n(Confusion Matrix)', 
-                            fontsize=16, fontweight='bold', pad=20)
-                
-                # Add explanatory text
-                total_predictions = cm.sum()
-                correct_predictions = np.trace(cm)
-                accuracy = (correct_predictions / total_predictions * 100)
-                
-                fig.text(0.5, 0.02,
-                        f'💡 Tip: Darker diagonal boxes = Correct predictions ({correct_predictions}/{total_predictions} = {accuracy:.1f}% correct!)\n'
-                        f'      Light off-diagonal boxes = Mistakes (these are the errors)',
-                        ha='center', fontsize=10, style='italic',
-                        bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8))
-                
-                plt.tight_layout(rect=[0, 0.08, 1, 1])
-                
-                buf = io.BytesIO()
-                plt.savefig(buf, format='png', dpi=110, bbox_inches='tight')
-                buf.seek(0)
-                visualizations['confusion_matrix'] = base64.b64encode(buf.read()).decode('utf-8')
-                plt.close()
-            
-            # 3. Training vs Testing - Simple Comparison
-            if metrics:
+
+                # 2) Confusion matrix only for classification
+                if 'y_test' in pipeline and 'predictions' in pipeline:
+                    y_test = np.array(pipeline['y_test'])
+                    y_pred = np.array(pipeline['predictions']['test'])
+
+                    cm = confusion_matrix(y_test, y_pred)
+
+                    fig, ax = plt.subplots(figsize=(9, 7))
+                    sns.heatmap(
+                        cm,
+                        annot=True,
+                        fmt='d',
+                        cmap='Blues',
+                        cbar_kws={'label': 'Number of Predictions'},
+                        linewidths=2,
+                        linecolor='white',
+                        square=True,
+                        ax=ax,
+                        annot_kws={'size': 14, 'weight': 'bold'},
+                        cbar=True,
+                        vmin=0,
+                    )
+
+                    ax.set_xlabel('Predicted Label', fontsize=13, fontweight='bold', labelpad=10)
+                    ax.set_ylabel('Actual Label', fontsize=13, fontweight='bold', labelpad=10)
+                    ax.set_title('🎯 Confusion Matrix', fontsize=16, fontweight='bold', pad=20)
+
+                    total_predictions = cm.sum()
+                    correct_predictions = np.trace(cm)
+                    accuracy = (correct_predictions / total_predictions * 100) if total_predictions else 0
+
+                    fig.text(
+                        0.5,
+                        0.02,
+                        f'💡 Correct predictions are on the diagonal ({correct_predictions}/{total_predictions}, {accuracy:.1f}%).',
+                        ha='center',
+                        fontsize=10,
+                        style='italic',
+                        bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8),
+                    )
+
+                    plt.tight_layout(rect=[0, 0.08, 1, 1])
+                    buf = io.BytesIO()
+                    plt.savefig(buf, format='png', dpi=110, bbox_inches='tight')
+                    buf.seek(0)
+                    visualizations['confusion_matrix'] = base64.b64encode(buf.read()).decode('utf-8')
+                    plt.close()
+
+                # 3) Train vs test comparison for classification
                 fig, ax = plt.subplots(figsize=(9, 6))
-                
-                categories = ['Training Data\n(What Model Learned From)', 
-                             'Testing Data\n(New Unseen Data)']
-                accuracies = [
-                    metrics.get('train_accuracy', 0),
-                    metrics.get('test_accuracy', 0)
-                ]
-                
-                # Color code: green for training, blue for testing
-                colors = ['#27ae60', '#3498db']
-                bars = ax.bar(categories, accuracies, color=colors, alpha=0.85, 
-                             edgecolor='black', linewidth=1.5, width=0.6)
-                
-                # Add percentage labels
+
+                categories = ['Train Accuracy', 'Test Accuracy']
+                accuracies = [metrics.get('train_accuracy', 0), metrics.get('test_accuracy', 0)]
+
+                bars = ax.bar(categories, accuracies, color=['#27ae60', '#3498db'], alpha=0.85, edgecolor='black', linewidth=1.5, width=0.6)
                 for bar in bars:
                     height = bar.get_height()
-                    percentage = height * 100
-                    ax.text(bar.get_x() + bar.get_width()/2., height + 0.02,
-                           f'{percentage:.1f}%',
-                           ha='center', va='bottom', fontweight='bold', fontsize=16)
-                
-                ax.set_ylabel('Accuracy (Higher is Better)', fontsize=13, fontweight='bold')
-                ax.set_title('📚 Learning Check: Training vs Testing', 
-                            fontsize=16, fontweight='bold', pad=20)
+                    ax.text(bar.get_x() + bar.get_width() / 2, height + 0.02, f'{height * 100:.1f}%', ha='center', va='bottom', fontweight='bold', fontsize=14)
+
+                ax.set_ylabel('Accuracy', fontsize=13, fontweight='bold')
+                ax.set_title('📚 Train vs Test Accuracy', fontsize=16, fontweight='bold', pad=20)
                 ax.set_ylim(0, 1.15)
                 ax.grid(axis='y', alpha=0.4, linestyle='-', linewidth=0.5)
-                
-                # Add interpretation guidance
+
                 train_acc = accuracies[0] * 100
                 test_acc = accuracies[1] * 100
                 diff = abs(train_acc - test_acc)
-                
                 if diff < 5:
-                    interpretation = '✅ Great! Your model learned well and works on new data!'
+                    interpretation = '✅ Train and test are close: good generalization.'
                 elif diff < 10:
-                    interpretation = '👍 Good! Model is learning properly with minor difference.'
+                    interpretation = '👍 Slight gap between train and test.'
                 else:
-                    interpretation = '⚠️ Caution: Big gap means model might be overfitting (memorizing instead of learning).'
-                
-                fig.text(0.5, 0.02,
-                        f'💡 {interpretation}\n'
-                        f'      Training: {train_acc:.1f}% | Testing: {test_acc:.1f}% | Difference: {diff:.1f}%',
-                        ha='center', fontsize=10, style='italic',
-                        bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8))
-                
+                    interpretation = '⚠️ Large train/test gap: possible overfitting.'
+
+                fig.text(
+                    0.5,
+                    0.02,
+                    f'💡 {interpretation} Gap: {diff:.1f}%',
+                    ha='center',
+                    fontsize=10,
+                    style='italic',
+                    bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8),
+                )
+
                 plt.tight_layout(rect=[0, 0.08, 1, 1])
-                
+                buf = io.BytesIO()
+                plt.savefig(buf, format='png', dpi=110, bbox_inches='tight')
+                buf.seek(0)
+                visualizations['accuracy_comparison'] = base64.b64encode(buf.read()).decode('utf-8')
+                plt.close()
+
+            elif task_type == "regression" and metrics:
+                # 1) Regression overview (R2 + errors)
+                fig, ax = plt.subplots(figsize=(10, 6))
+
+                train_r2 = metrics.get('train_r2', 0)
+                test_r2 = metrics.get('test_r2', 0)
+                mae = float(metrics.get('mae', 0) or 0)
+                rmse = float(metrics.get('rmse', 0) or 0)
+
+                # Convert errors to bounded quality scores so all bars are comparable (0..1)
+                mae_quality = 1 / (1 + mae)
+                rmse_quality = 1 / (1 + rmse)
+
+                metric_names = [
+                    'Train R²\n(Higher Better)',
+                    'Test R²\n(Higher Better)',
+                    'MAE Quality\n(1 / (1 + MAE))',
+                    'RMSE Quality\n(1 / (1 + RMSE))',
+                ]
+                metric_values = [max(0.0, train_r2), max(0.0, test_r2), mae_quality, rmse_quality]
+
+                bars = ax.bar(metric_names, metric_values, color=['#27ae60', '#3498db', '#f39c12', '#9b59b6'], alpha=0.85, edgecolor='black', linewidth=1.5)
+
+                for bar in bars:
+                    height = bar.get_height()
+                    ax.text(bar.get_x() + bar.get_width() / 2, height + 0.02, f'{height:.3f}', ha='center', va='bottom', fontweight='bold', fontsize=12)
+
+                ax.set_ylabel('Normalized Score (Higher is Better)', fontsize=13, fontweight='bold')
+                ax.set_title('📈 Regression Performance Overview', fontsize=16, fontweight='bold', pad=20)
+                ax.set_ylim(0, 1.15)
+                ax.grid(axis='y', alpha=0.4, linestyle='-', linewidth=0.5)
+
+                fig.text(
+                    0.5,
+                    0.02,
+                    f'Raw errors: MAE={mae:.4f}, RMSE={rmse:.4f}. Lower raw errors are better.',
+                    ha='center',
+                    fontsize=10,
+                    style='italic',
+                    bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8),
+                )
+
+                plt.tight_layout(rect=[0, 0.08, 1, 1])
+                buf = io.BytesIO()
+                plt.savefig(buf, format='png', dpi=110, bbox_inches='tight')
+                buf.seek(0)
+                visualizations['metrics_chart'] = base64.b64encode(buf.read()).decode('utf-8')
+                plt.close()
+
+                # 2) Actual vs Predicted scatter plot for regression
+                if 'y_test' in pipeline and 'predictions' in pipeline:
+                    y_test = np.array(pipeline['y_test'])
+                    y_pred = np.array(pipeline['predictions']['test'])
+
+                    fig, ax = plt.subplots(figsize=(9, 7))
+                    ax.scatter(y_test, y_pred, alpha=0.6, color='#3498db', edgecolors='white', linewidth=0.5)
+
+                    min_val = float(min(np.min(y_test), np.min(y_pred)))
+                    max_val = float(max(np.max(y_test), np.max(y_pred)))
+                    ax.plot([min_val, max_val], [min_val, max_val], '--', color='crimson', linewidth=2)
+
+                    ax.set_xlabel('Actual Values', fontsize=13, fontweight='bold')
+                    ax.set_ylabel('Predicted Values', fontsize=13, fontweight='bold')
+                    ax.set_title('🎯 Actual vs Predicted (Regression)', fontsize=16, fontweight='bold', pad=20)
+                    ax.grid(alpha=0.3)
+
+                    fig.text(
+                        0.5,
+                        0.02,
+                        '💡 Points closer to the red diagonal line indicate better predictions.',
+                        ha='center',
+                        fontsize=10,
+                        style='italic',
+                        bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8),
+                    )
+
+                    plt.tight_layout(rect=[0, 0.08, 1, 1])
+                    buf = io.BytesIO()
+                    plt.savefig(buf, format='png', dpi=110, bbox_inches='tight')
+                    buf.seek(0)
+                    visualizations['confusion_matrix'] = base64.b64encode(buf.read()).decode('utf-8')
+                    plt.close()
+
+                # 3) Train vs test R2 comparison
+                fig, ax = plt.subplots(figsize=(9, 6))
+                scores = [metrics.get('train_r2', 0), metrics.get('test_r2', 0)]
+                bars = ax.bar(['Train R²', 'Test R²'], scores, color=['#27ae60', '#3498db'], alpha=0.85, edgecolor='black', linewidth=1.5, width=0.6)
+
+                for bar in bars:
+                    height = bar.get_height()
+                    ax.text(bar.get_x() + bar.get_width() / 2, height + 0.02, f'{height:.3f}', ha='center', va='bottom', fontweight='bold', fontsize=14)
+
+                ax.set_ylabel('R² Score', fontsize=13, fontweight='bold')
+                ax.set_title('📚 Train vs Test R²', fontsize=16, fontweight='bold', pad=20)
+                ax.set_ylim(min(-0.1, min(scores) - 0.1), 1.1)
+                ax.grid(axis='y', alpha=0.4, linestyle='-', linewidth=0.5)
+
+                diff = abs((scores[0] or 0) - (scores[1] or 0))
+                if diff < 0.05:
+                    interpretation = '✅ Train and test R² are close.'
+                elif diff < 0.15:
+                    interpretation = '👍 Small train/test R² gap.'
+                else:
+                    interpretation = '⚠️ Large R² gap suggests overfitting.'
+
+                fig.text(
+                    0.5,
+                    0.02,
+                    f'💡 {interpretation} Gap: {diff:.3f}',
+                    ha='center',
+                    fontsize=10,
+                    style='italic',
+                    bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8),
+                )
+
+                plt.tight_layout(rect=[0, 0.08, 1, 1])
                 buf = io.BytesIO()
                 plt.savefig(buf, format='png', dpi=110, bbox_inches='tight')
                 buf.seek(0)
@@ -745,7 +895,7 @@ class MLService:
                 plt.close()
             
             # 4. Feature Importance - Which inputs matter most?
-            if pipeline.get('model_type') in ['decision_tree', 'random_forest']:
+            if pipeline.get('model_type') in ['decision_tree', 'random_forest', 'decision_tree_regressor', 'random_forest_regressor']:
                 model = pipeline.get('model')
                 feature_columns = pipeline.get('feature_columns', [])
                 
@@ -818,6 +968,7 @@ class MLService:
             } if "X_train" in pipeline else None,
             "model_info": {
                 "model_type": pipeline.get("model_type"),
+                "task_type": pipeline.get("task_type"),
                 "metrics": pipeline.get("metrics"),
             } if "model_type" in pipeline else None,
             "visualizations": visualizations,

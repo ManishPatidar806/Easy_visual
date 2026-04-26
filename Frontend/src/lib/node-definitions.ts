@@ -102,7 +102,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
   mlPreprocess: {
     type: "mlPreprocess",
     label: "Preprocess Data",
-    description: "Standardize or normalize numeric columns",
+    description: "Optional: standardize or normalize numeric columns",
     category: "ml",
     icon: Wand2,
     color: "bg-indigo-500",
@@ -126,7 +126,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         name: "columns",
         label: "Numeric Columns",
         type: "multiselect",
-        required: true,
+        required: false,
       },
     ],
   },
