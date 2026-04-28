@@ -15,9 +15,7 @@ interface NodeExecutionResult {
 }
 
 export class WorkflowExecutor {
-  async executeNode(
-    context: NodeExecutionContext
-  ): Promise<NodeExecutionResult> {
+  async executeNode(context: NodeExecutionContext): Promise<NodeExecutionResult> {
     const { input, config } = context;
     const definition = nodeDefinitions[config.type];
 
@@ -38,10 +36,7 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeMLNodeSwitch(
-    config: Record<string, any>,
-    input: any
-  ): Promise<NodeExecutionResult> {
+  private async executeMLNodeSwitch(config: Record<string, any>, input: any): Promise<NodeExecutionResult> {
     switch (config.type) {
       case "mlUpload":
         return await this.executeMLUpload(config, input);
@@ -69,10 +64,7 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeMLUpload(
-    config: Record<string, any>,
-    _input: any
-  ): Promise<NodeExecutionResult> {
+  private async executeMLUpload(config: Record<string, any>, _input: any): Promise<NodeExecutionResult> {
     try {
       if (!config.file) {
         return {
@@ -82,7 +74,6 @@ export class WorkflowExecutor {
       }
 
       const result = await uploadDataset(config.file);
-
       return {
         success: true,
         output: {
@@ -99,10 +90,7 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeMLClean(
-    config: Record<string, any>,
-    input: any
-  ): Promise<NodeExecutionResult> {
+  private async executeMLClean(config: Record<string, any>, input: any): Promise<NodeExecutionResult> {
     try {
       if (!input || !input.pipeline_id) {
         return {
@@ -115,12 +103,7 @@ export class WorkflowExecutor {
       const columns = config.columns || [];
       const fillValue = config.fillValue;
 
-      const result = await cleanData(
-        input.pipeline_id,
-        strategy,
-        columns,
-        fillValue
-      );
+      const result = await cleanData(input.pipeline_id, strategy, columns, fillValue);
 
       return {
         success: true,
@@ -144,10 +127,7 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeMLPreprocess(
-    config: Record<string, any>,
-    input: any
-  ): Promise<NodeExecutionResult> {
+  private async executeMLPreprocess(config: Record<string, any>, input: any): Promise<NodeExecutionResult> {
     try {
       if (!input || !input.pipeline_id) {
         return {
@@ -181,10 +161,7 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeMLSplit(
-    config: Record<string, any>,
-    input: any
-  ): Promise<NodeExecutionResult> {
+  private async executeMLSplit(config: Record<string, any>, input: any): Promise<NodeExecutionResult> {
     try {
       if (!input || !input.pipeline_id) {
         return {
@@ -201,11 +178,7 @@ export class WorkflowExecutor {
       }
 
       const splitRatio = parseFloat(config.splitRatio || "0.8");
-      const result = await splitData(
-        input.pipeline_id,
-        splitRatio,
-        config.targetColumn
-      );
+      const result = await splitData(input.pipeline_id, splitRatio, config.targetColumn);
 
       return {
         success: true,
@@ -227,10 +200,7 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeMLTrain(
-    config: Record<string, any>,
-    input: any
-  ): Promise<NodeExecutionResult> {
+  private async executeMLTrain(config: Record<string, any>, input: any): Promise<NodeExecutionResult> {
     try {
       if (!input || !input.pipeline_id) {
         return {
@@ -242,14 +212,10 @@ export class WorkflowExecutor {
       const modelType = config.modelType || "logistic_regression";
       const taskType = config.taskType || "classification";
 
-      const result = await trainModel(
-        input.pipeline_id,
-        modelType,
-        taskType
-      );
+      const result = await trainModel(input.pipeline_id, modelType, taskType);
 
       const scoreLabel = taskType === "classification" ? "Accuracy" : "R² Score";
-      const scoreValue = taskType === "classification" ? result.test_score : result.test_score;
+      const scoreValue = result.test_score;
       const displayValue = taskType === "classification" 
         ? `${(scoreValue * 100).toFixed(2)}%`
         : scoreValue.toFixed(3);
@@ -274,10 +240,7 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeMLResults(
-    _config: Record<string, any>,
-    input: any
-  ): Promise<NodeExecutionResult> {
+  private async executeMLResults(_config: Record<string, any>, input: any): Promise<NodeExecutionResult> {
     try {
       if (!input || !input.pipeline_id) {
         return {

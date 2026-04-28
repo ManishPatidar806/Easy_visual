@@ -1,11 +1,10 @@
-import { memo } from "react";
-import { Handle, Position, NodeProps, useReactFlow } from "reactflow";
+import { Handle, Position, useReactFlow } from "reactflow";
 import { nodeDefinitions } from "@/lib/node-definitions";
-import { WorkflowNode } from "@/lib/WorkflowContext";
 import { isFirstBackendRequestInSession } from "@/api/client";
 import { Settings, CheckCircle, AlertCircle, Loader2, Trash2, Play, Eye } from "lucide-react";
 
-function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
+function CustomNode(props: any) {
+  const { data, selected, id } = props;
   const definition = nodeDefinitions[data.type];
   const { deleteElements } = useReactFlow();
 
@@ -13,12 +12,12 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
 
   const Icon = definition.icon;
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = (e: any) => {
     e.stopPropagation();
     deleteElements({ nodes: [{ id }] });
   };
 
-  const handleRun = (e: React.MouseEvent) => {
+  const handleRun = (e: any) => {
     e.stopPropagation();
     const executeFromNode = (window as any).__executeFromNode;
     if (executeFromNode) {
@@ -26,9 +25,9 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
     }
   };
 
-  const handleViewResults = (e: React.MouseEvent) => {
+  const handleViewResults = (e: any) => {
     e.stopPropagation();
-    const event = new MouseEvent('dblclick', {
+    const event = new MouseEvent("dblclick", {
       bubbles: true,
       cancelable: true,
       view: window
@@ -104,7 +103,6 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
           {definition.description}
         </div>
 
-        {}
         {data.config && Object.keys(data.config).length > 0 && (
           <div className="mt-2 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">
             <div className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
@@ -113,8 +111,6 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
             </div>
           </div>
         )}
-
-        {}
         {data.error && (
           <div className="mt-2 text-xs bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-2 rounded border border-red-200 dark:border-red-800">
             <div className="whitespace-pre-line">{data.error}</div>
@@ -126,10 +122,6 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
             First request may take 2-3 minutes while Render starts the backend service.
           </div>
         )}
-
-        {}
-
-        {}
         {data.output && !data.error && data.type === "mlUpload" && data.output.dataset_info && (
           <div className="mt-2 text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
             <div className="text-green-700 dark:text-green-300 font-medium">✓ Dataset Loaded</div>
@@ -138,8 +130,6 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
             </div>
           </div>
         )}
-
-        {}
         {data.output && !data.error && data.type === "mlPreprocess" && data.output.processed && (
           <div className="mt-2 text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
             <div className="text-green-700 dark:text-green-300 font-medium">✓ Preprocessed</div>
@@ -148,8 +138,6 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
             </div>
           </div>
         )}
-
-        {}
         {data.output && !data.error && data.type === "mlSplit" && data.output.train_size && (
           <div className="mt-2 text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
             <div className="text-green-700 dark:text-green-300 font-medium">✓ Data Split</div>
@@ -158,8 +146,6 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
             </div>
           </div>
         )}
-
-        {}
         {data.output && !data.error && data.type === "mlTrain" && (data.output.test_accuracy !== undefined || data.output.test_score !== undefined) && (
           <div className="mt-2 text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
             <div className="text-green-700 dark:text-green-300 font-medium">✓ Model Trained</div>
@@ -170,8 +156,6 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
             </div>
           </div>
         )}
-
-        {}
         {data.output && !data.error && data.type === "mlResults" && data.output.model_info?.metrics && (
           <div className="mt-2 space-y-2">
             {(() => {
@@ -201,10 +185,6 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
           </div>
         )}
       </div>
-
-      {}
-      {}
-      {}
       {data.type !== "mlResults" && (
         <Handle
           type="source"
@@ -215,5 +195,4 @@ function CustomNode({ data, selected, id }: NodeProps<WorkflowNode["data"]>) {
     </div>
   );
 }
-
-export default memo(CustomNode);
+export default CustomNode;

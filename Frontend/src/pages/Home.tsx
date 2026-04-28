@@ -1,59 +1,34 @@
-// ===== IMPORTS =====
 import { useState, useEffect } from "react";
-
-// ReactFlow library for the visual workflow canvas
 import ReactFlow, {
-  Background,   // Grid background
-  Controls,     // Zoom/pan controls
-  MiniMap,      // Small overview map
-  Panel,        // Overlay panel
+  Background,
+  Controls,
+  MiniMap,
+  Panel,
 } from "reactflow";
 import "reactflow/dist/style.css";
-
-// Our custom components
 import Sidebar from "@/components/Sidebar";
 import CustomNode from "@/components/CustomNode";
 import NodeConfigPanel from "@/components/NodeConfigPanel";
-
-// Our state management and utilities
 import { useWorkflow } from "@/lib/WorkflowContext";
 import { nodeDefinitions } from "@/lib/node-definitions";
 import { WorkflowExecutor } from "@/lib/executor";
 import { isFirstBackendRequestInSession } from "@/api/client";
 
-// ===== SETUP =====
-
-// Tell ReactFlow to use our custom node component for all nodes
 const nodeTypes = {
   custom: CustomNode,
 };
-
-// Counter to give each new node a unique ID
 let nodeIdCounter = 0;
 
-// ===== MAIN COMPONENT =====
-
 export default function Home() {
-  // Get workflow state and functions from our Context
   const { nodes, edges, addNode, addEdge, updateNode, setNodes, setEdges } = useWorkflow();
-  
-  // Track which node (if any) is currently selected for configuration
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  
-  // Store ReactFlow instance to convert screen coords to canvas coords
-  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState(null as any);
+  const [reactFlowInstance, setReactFlowInstance] = useState(null as any);
 
   const hasExecutingNode = nodes.some((node) => node.data?.isExecuting);
   const showColdStartBanner = hasExecutingNode && isFirstBackendRequestInSession();
 
-  // ===== EVENT HANDLERS =====
-
-  // When user connects two nodes together  
   function onConnect(connection: any) {
-    // Make sure both source and target exist
     if (!connection.source || !connection.target) return;
-
-    // First, remove any existing connection to the target node (using functional update)
     setEdges((currentEdges) => {
       const existing = currentEdges.find((e) => e.target === connection.target);
       if (existing) {
@@ -61,19 +36,14 @@ export default function Home() {
       }
       return currentEdges;
     });
-
-    // Create the new edge with a unique ID and styling
     const edge = {
       ...connection,
       id: `e${connection.source}-${connection.target}`,
       type: "smoothstep",
       animated: true,
     };
-    
     addEdge(edge);
   }
-
-  // When nodes are moved or deleted
   function handleNodesChange(changes: any[]) {
     changes.forEach((change: any) => {
       if (change.type === "remove") {
@@ -86,8 +56,6 @@ export default function Home() {
       }
     });
   }
-
-  // When edges are deleted
   function handleEdgesChange(changes: any[]) {
     changes.forEach((change: any) => {
       if (change.type === "remove") {
@@ -95,14 +63,10 @@ export default function Home() {
       }
     });
   }
-
-  // When user drags something over the canvas
   function onDragOver(event: any) {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
   }
-
-  // When user drops a node from sidebar onto canvas
   function onDrop(event: any) {
     event.preventDefault();
 
@@ -130,26 +94,18 @@ export default function Home() {
 
     addNode(newNode);
   }
-
-  // When user double-clicks a node
   function onNodeDoubleClick(_event: any, node: any) {
     setSelectedNodeId(node.id);
   }
-
-  // When user single-clicks a node
   function onNodeClick(_event: any, node: any) {
     if (node.data.type === "mlResults" && node.data.output?.model_info?.metrics) {
       setSelectedNodeId(node.id);
     }
   }
-
-  // Delete a node and all edges connected to it
   function deleteNode(nodeId: string) {
     setNodes((curr) => curr.filter((n) => n.id !== nodeId));
     setEdges((curr) => curr.filter((e) => e.source !== nodeId && e.target !== nodeId));
   }
-
-  // Keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(event: any) {
       if (!selectedNodeId) return;
@@ -172,16 +128,14 @@ export default function Home() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedNodeId]);
-
-  // Execute workflow from a node
   async function executeFromNode(startNodeId: string) {
     const executor = new WorkflowExecutor();
-    const executedNodes = new Set<string>();
+    const executedNodes = new Set();
     const nodeOutputs: any = {};
 
     function getUpstreamNodes(nodeId: string): string[] {
       const upstreamEdges = edges.filter((e) => e.target === nodeId);
-      const upstreamNodeIds = [];
+      const upstreamNodeIds: any[] = [];
       for (const edge of upstreamEdges) {
         upstreamNodeIds.push(...getUpstreamNodes(edge.source), edge.source);
       }
@@ -253,8 +207,6 @@ export default function Home() {
       console.error("Workflow execution error:", error);
     }
   }
-
-  // Make executeFromNode available globally
   useEffect(() => {
     (window as any).__executeFromNode = executeFromNode;
     return () => {
@@ -265,7 +217,6 @@ export default function Home() {
   return (
     <div className="flex h-screen">
       <Sidebar onExecute={undefined} isExecuting={undefined} />
-      
       <div className="flex-1">
         <ReactFlow
           nodes={nodes}

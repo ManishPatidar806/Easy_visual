@@ -8,36 +8,25 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { X, Upload as UploadIcon, CheckCircle, ChevronRight } from "lucide-react";
 
-interface NodeConfigPanelProps {
-  nodeId: string;
-  onClose: () => void;
-}
-
-export default function NodeConfigPanel({
-  nodeId,
-  onClose,
-}: NodeConfigPanelProps) {
+export default function NodeConfigPanel(props: any) {
+  const { nodeId, onClose } = props;
   const { nodes, edges, updateNode } = useWorkflow();
   const node = nodes.find((n) => n.id === nodeId);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef(null as any);
   
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [width, setWidth] = useState(600);
   const [isResizing, setIsResizing] = useState(false);
 
-  const [config, setConfig] = useState<Record<string, any>>(
-    node?.data.config || {}
-  );
-  const [selectedColumns, setSelectedColumns] = useState<string[]>(
-    config.columns || []
-  );
+  const [config, setConfig] = useState(node?.data.config || {});
+  const [selectedColumns, setSelectedColumns] = useState(config.columns || []);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = (e: any) => {
     setIsResizing(true);
     e.preventDefault();
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = (e: any) => {
     if (isResizing) {
       const newWidth = window.innerWidth - e.clientX;
       if (newWidth >= 400 && newWidth <= 1000) {
@@ -52,11 +41,11 @@ export default function NodeConfigPanel({
 
   useEffect(() => {
     if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
       return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
       };
     }
   }, [isResizing]);
@@ -67,8 +56,8 @@ export default function NodeConfigPanel({
       
       const def = nodeDefinitions[node.data.type];
       if (def?.defaultConfig) {
-        Object.keys(def.defaultConfig).forEach(key => {
-          if (newConfig[key] === undefined || newConfig[key] === null || newConfig[key] === '') {
+        Object.keys(def.defaultConfig).forEach((key) => {
+          if (newConfig[key] === undefined || newConfig[key] === null || newConfig[key] === "") {
             newConfig[key] = def.defaultConfig[key];
           }
         });
@@ -99,7 +88,7 @@ export default function NodeConfigPanel({
     setConfig((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: any) => {
     const file = e.target.files?.[0];
     if (file) {
       handleChange("file", file);
@@ -115,14 +104,12 @@ export default function NodeConfigPanel({
     );
   };
 
-  const getAvailableColumns = (): string[] => {
+  const getAvailableColumns = () => {
     if (node?.data.output?.dataset_info?.column_names) {
       return node.data.output.dataset_info.column_names;
     }
-    
-    // Get edges and nodes from Context (already available)
     const allNodes = nodes;
-    
+
     const incomingEdge = edges.find((e: any) => e.target === nodeId);
     if (incomingEdge) {
       const sourceNode = allNodes.find((n) => n.id === (incomingEdge as any).source);
@@ -130,19 +117,17 @@ export default function NodeConfigPanel({
         return sourceNode.data.output.dataset_info.column_names;
       }
     }
-    
     return [];
   };
 
-  const getNumericColumns = (): string[] => {
-    let columnTypes: Record<string, string> = {};
+  const getNumericColumns = () => {
+    let columnTypes: any = {};
     
     if (node?.data.output?.dataset_info?.column_types) {
       columnTypes = node.data.output.dataset_info.column_types;
     } else {
-      // Get nodes from Context (already available)
       const allNodes = nodes;
-      
+
       const incomingEdge = edges.find((e: any) => e.target === nodeId);
       if (incomingEdge) {
         const sourceNode = allNodes.find((n) => n.id === (incomingEdge as any).source);
@@ -151,7 +136,7 @@ export default function NodeConfigPanel({
         }
       }
     }
-    
+
     const allColumns = getAvailableColumns();
     return allColumns.filter((col) => {
       const dtype = columnTypes[col] || "";
@@ -181,11 +166,10 @@ export default function NodeConfigPanel({
       className="fixed inset-y-0 right-0 bg-white dark:bg-gray-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 z-50 overflow-y-auto"
       style={{ width: `${width}px` }}
     >
-      {}
       <div
         className="absolute top-0 left-0 w-1 h-full cursor-ew-resize hover:bg-blue-500 transition-colors z-10"
         onMouseDown={handleMouseDown}
-        style={{ cursor: isResizing ? 'ew-resize' : 'col-resize' }}
+        style={{ cursor: isResizing ? "ew-resize" : "col-resize" }}
       />
 
       <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
@@ -215,7 +199,6 @@ export default function NodeConfigPanel({
       </div>
 
       <div className="p-4 space-y-4">
-        {}
         {node.data.type === "mlTrain" && (
           <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
             <div className="flex items-start gap-2">
@@ -277,7 +260,6 @@ export default function NodeConfigPanel({
                 onChange={(e) => handleChange(field.name, e.target.value)}
                 className="mt-1"
               >
-                {}
                 {field.name === "targetColumn" && getAvailableColumns().length > 0 ? (
                   <>
                     <option value="">Select target column...</option>
@@ -338,7 +320,6 @@ export default function NodeConfigPanel({
               </div>
             )}
 
-            {}
             {field.type === "multiselect" && (
               <div className="mt-1 border border-gray-300 dark:border-gray-600 rounded-md p-2 max-h-48 overflow-y-auto bg-white dark:bg-gray-800">
                 {getAvailableColumns().length === 0 ? (
@@ -376,7 +357,6 @@ export default function NodeConfigPanel({
               </div>
             )}
 
-            {}
             {field.type === "radio" && (
               <div className="mt-1 space-y-2">
                 {field.options?.map((option) => (
@@ -410,7 +390,6 @@ export default function NodeConfigPanel({
           </div>
         ))}
 
-        {}
         {node.data.type === "mlUpload" && node.data.output?.dataset_info && (
           <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
@@ -492,7 +471,6 @@ export default function NodeConfigPanel({
           </div>
         )}
 
-        {}
         {node.data.type === "mlClean" && node.data.output?.missing_before && (
           <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md">
             <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
@@ -557,7 +535,6 @@ export default function NodeConfigPanel({
           </div>
         )}
 
-        {}
         {node.data.type === "mlPreprocess" && node.data.output?.processed && (
           <div className="mt-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg">
             <h4 className="text-sm font-semibold text-indigo-900 dark:text-indigo-100 mb-3 flex items-center gap-2">
@@ -593,7 +570,6 @@ export default function NodeConfigPanel({
           </div>
         )}
 
-        {}
         {node.data.type === "mlSplit" && node.data.output?.train_size && (
           <div className="mt-4 p-4 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg">
             <h4 className="text-sm font-semibold text-cyan-900 dark:text-cyan-100 mb-3 flex items-center gap-2">
@@ -646,7 +622,6 @@ export default function NodeConfigPanel({
           </div>
         )}
 
-        {}
         {node.data.type === "mlTrain" && node.data.output && (node.data.output.test_accuracy !== undefined || node.data.output.test_score !== undefined) && (() => {
           const taskType = node.data.output.task_type || 'classification';
           const isClassification = taskType === 'classification';
@@ -788,7 +763,6 @@ export default function NodeConfigPanel({
           );
         })()}
 
-        {}
         {node.data.type === "mlResults" && node.data.output?.model_info?.metrics && (
           <div className="mt-4 space-y-4">
             {(() => {
@@ -854,8 +828,6 @@ export default function NodeConfigPanel({
             </div>
               );
             })()}
-
-            {}
             <div className="p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md">
               <div className="flex items-start gap-2">
                 <span className="text-lg">💡</span>
@@ -878,7 +850,6 @@ export default function NodeConfigPanel({
               </div>
             </div>
 
-            {}
             {node.data.output.visualizations && (
               <div className="space-y-4">
                 <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">

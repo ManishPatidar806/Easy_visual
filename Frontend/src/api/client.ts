@@ -1,16 +1,16 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 const REQUEST_TIMEOUT = 30000;
-const BACKEND_WARM_KEY = 'backend_warm_session';
+const BACKEND_WARM_KEY = "backend_warm_session";
 
 function markBackendWarm() {
   if (typeof window !== 'undefined') {
-    window.sessionStorage.setItem(BACKEND_WARM_KEY, '1');
+    window.sessionStorage.setItem(BACKEND_WARM_KEY, "1");
   }
 }
 
 export function isFirstBackendRequestInSession(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.sessionStorage.getItem(BACKEND_WARM_KEY) !== '1';
+  if (typeof window === "undefined") return false;
+  return window.sessionStorage.getItem(BACKEND_WARM_KEY) !== "1";
 }
 
 class APIError extends Error {
@@ -26,13 +26,12 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
   const timeout = shouldApplyTimeout
     ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
     : null;
-  
+
   try {
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
     });
-    // Any real backend response means the service is already awake for this session.
     markBackendWarm();
     if (timeout) {
       clearTimeout(timeout);
@@ -42,16 +41,16 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
     if (timeout) {
       clearTimeout(timeout);
     }
-    if (error.name === 'AbortError') {
-      throw new APIError(408, 'Request timeout - please try again');
+    if (error.name === "AbortError") {
+      throw new APIError(408, "Request timeout - please try again");
     }
-    throw new APIError(0, 'Network error - please check your connection');
+    throw new APIError(0, "Network error - please check your connection");
   }
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    let errorMessage = 'An error occurred';
+    let errorMessage = "An error occurred";
     try {
       const error = await response.json();
       errorMessage = error.detail || error.message || errorMessage;
@@ -65,39 +64,44 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 export async function uploadDataset(file: File): Promise<any> {
   if (!file) {
-    throw new APIError(400, 'No file provided');
+    throw new APIError(400, "No file provided");
   }
-  
+
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append("file", file);
 
   const response = await fetchWithTimeout(`${API_BASE_URL}/ml/upload`, {
-    method: 'POST',
+    method: "POST",
     body: formData,
   });
 
   return handleResponse(response);
 }
 
-export async function cleanData(pipelineId: string, strategy: string, columns: string[], fillValue?: string): Promise<any> {
+export async function cleanData(
+  pipelineId: string,
+  strategy: string,
+  columns: string[],
+  fillValue?: string
+): Promise<any> {
   if (!pipelineId) {
-    throw new APIError(400, 'Pipeline ID is required');
+    throw new APIError(400, "Pipeline ID is required");
   }
-  
+
   const body: any = {
     pipeline_id: pipelineId,
     strategy: strategy,
     columns: columns.length > 0 ? columns : null,
   };
-  
-  if (strategy === 'constant' && fillValue !== undefined) {
+
+  if (strategy === "constant" && fillValue !== undefined) {
     body.fill_value = fillValue;
   }
 
   const response = await fetchWithTimeout(`${API_BASE_URL}/ml/clean`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
   });
@@ -107,13 +111,13 @@ export async function cleanData(pipelineId: string, strategy: string, columns: s
 
 export async function preprocessData(pipelineId: string, scalerType: string, columns: string[]): Promise<any> {
   if (!pipelineId) {
-    throw new APIError(400, 'Pipeline ID is required');
+    throw new APIError(400, "Pipeline ID is required");
   }
-  
+
   const response = await fetchWithTimeout(`${API_BASE_URL}/ml/preprocess`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       pipeline_id: pipelineId,
@@ -127,16 +131,16 @@ export async function preprocessData(pipelineId: string, scalerType: string, col
 
 export async function splitData(pipelineId: string, splitRatio: number, targetColumn: string): Promise<any> {
   if (!pipelineId) {
-    throw new APIError(400, 'Pipeline ID is required');
+    throw new APIError(400, "Pipeline ID is required");
   }
   if (!targetColumn) {
-    throw new APIError(400, 'Target column is required');
+    throw new APIError(400, "Target column is required");
   }
-  
+
   const response = await fetchWithTimeout(`${API_BASE_URL}/ml/split`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       pipeline_id: pipelineId,
@@ -150,16 +154,16 @@ export async function splitData(pipelineId: string, splitRatio: number, targetCo
 
 export async function trainModel(pipelineId: string, modelType: string, taskType: string = "classification"): Promise<any> {
   if (!pipelineId) {
-    throw new APIError(400, 'Pipeline ID is required');
+    throw new APIError(400, "Pipeline ID is required");
   }
   if (!modelType) {
-    throw new APIError(400, 'Model type is required');
+    throw new APIError(400, "Model type is required");
   }
-  
+
   const response = await fetchWithTimeout(`${API_BASE_URL}/ml/train`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       pipeline_id: pipelineId,
@@ -173,11 +177,11 @@ export async function trainModel(pipelineId: string, modelType: string, taskType
 
 export async function getResults(pipelineId: string): Promise<any> {
   if (!pipelineId) {
-    throw new APIError(400, 'Pipeline ID is required');
+    throw new APIError(400, "Pipeline ID is required");
   }
-  
+
   const response = await fetchWithTimeout(`${API_BASE_URL}/ml/results/${pipelineId}`, {
-    method: 'GET',
+    method: "GET",
   });
 
   return handleResponse(response);

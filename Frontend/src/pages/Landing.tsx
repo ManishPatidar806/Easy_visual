@@ -1,16 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Upload, Settings, GitBranch, Cpu, BarChart3, Zap, BookOpen, GraduationCap, CheckCircle, Eraser, Wand2, Split } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface Slide {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  color: string;
-}
-
-const slides: Slide[] = [
+const slides = [
   {
     icon: (
       <div className="flex items-center justify-center h-full w-full p-4">
@@ -897,7 +890,6 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
-      {/* Header */}
       <header className="border-b border-gray-100 dark:border-gray-900 sticky top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-5">
           <div className="flex justify-between items-center">
@@ -926,8 +918,6 @@ export default function Landing() {
           </div>
         </div>
       </header>
-
-      {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-6 lg:px-8 pt-16 pb-12 md:pt-24 md:pb-20">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
@@ -983,7 +973,6 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Demo Preview - Right Side */}
           <div className="relative">
             <div className="relative bg-white dark:bg-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-800 shadow-lg">
               <div className="flex items-center gap-2 mb-6">
@@ -1050,8 +1039,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
-      {/* Features Slider Section */}
       <section id="features" className="bg-gray-50 dark:bg-gray-900/50 py-24">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="max-w-3xl mb-16">
@@ -1063,7 +1050,6 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* Slide Container - Visual Preview Tabs */}
           <div className="relative">
             <div className="overflow-hidden rounded-3xl border border-gray-200 dark:border-gray-800 shadow-2xl">
               <div
@@ -1079,8 +1065,6 @@ export default function Landing() {
                 ))}
               </div>
             </div>
-
-            {/* Navigation Arrows */}
             <button
               onClick={() => { previousSlide(); setAutoPlay(false); }}
               className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white p-4 rounded-full transition-all"
@@ -1095,8 +1079,6 @@ export default function Landing() {
             >
               <ChevronRight className="w-6 h-6" />
             </button>
-
-            {/* Slide Indicators */}
             <div className="flex justify-center gap-3 mt-10">
               {slides.map((_, index) => (
                 <button
@@ -1114,8 +1096,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
-      {/* Why It's Different */}
       <section className="max-w-7xl mx-auto px-6 lg:px-8 py-24">
         <div className="grid lg:grid-cols-2 gap-16 items-start">
           <div>
@@ -1199,9 +1179,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
-
-      {/* Footer */}
       <footer className="border-t border-gray-200 dark:border-gray-800 py-12 bg-gray-50 dark:bg-gray-950">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
