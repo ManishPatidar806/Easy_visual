@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from "react";
 import { addEdge as addReactFlowEdge, Connection } from "reactflow";
-type NodeType = "mlUpload" | "mlClean" | "mlPreprocess" | "mlSplit" | "mlTrain" | "mlResults";
+type NodeType = "mlUpload" | "mlClean" | "mlPreprocess" | "mlSplit" | "mlTrain" | "mlResults" | "mlDownloadConfig";
 interface NodeData {
   label: string;
   type: NodeType;
@@ -11,9 +11,10 @@ interface NodeData {
 }
 interface WorkflowNode {
   id: string;
-  type: string;
+  type?: string;
   position: { x: number; y: number };
   data: NodeData;
+  [key: string]: any;
 }
 interface WorkflowEdge {
   id: string;
@@ -27,6 +28,7 @@ interface WorkflowContextType {
   edges: WorkflowEdge[];
   addNode: (node: WorkflowNode) => void;
   updateNode: (id: string, data: any) => void;
+  invalidateNodeOutputs: (id: string) => void;
   deleteNode: (id: string) => void;
   addEdge: (edge: any) => void;
   deleteEdge: (id: string) => void;
@@ -49,6 +51,38 @@ export function WorkflowProvider({ children }: { children: React.ReactNode }) {
       currentNodes.map((node) =>
         node.id === id ? { ...node, data: { ...node.data, ...newData } } : node
       )
+    );
+  };
+
+  const invalidateNodeOutputs = (startNodeId: string) => {
+    const affectedNodeIds = new Set<string>([startNodeId]);
+    const queue = [startNodeId];
+
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      const outgoing = edges.filter((e) => e.source === curr);
+      for (const edge of outgoing) {
+        if (!affectedNodeIds.has(edge.target)) {
+          affectedNodeIds.add(edge.target);
+          queue.push(edge.target);
+        }
+      }
+    }
+
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => {
+        if (affectedNodeIds.has(node.id)) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              output: undefined,
+              error: undefined,
+            },
+          };
+        }
+        return node;
+      })
     );
   };
 
@@ -77,6 +111,7 @@ export function WorkflowProvider({ children }: { children: React.ReactNode }) {
     edges,
     addNode,
     updateNode,
+    invalidateNodeOutputs,
     deleteNode,
     addEdge,
     deleteEdge,

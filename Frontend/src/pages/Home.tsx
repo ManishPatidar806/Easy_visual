@@ -1,9 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
   Panel,
+  applyNodeChanges,
+  applyEdgeChanges,
+  NodeChange,
+  EdgeChange,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import Sidebar from "@/components/Sidebar";
@@ -14,15 +18,26 @@ import { nodeDefinitions } from "@/lib/node-definitions";
 import { WorkflowExecutor } from "@/lib/executor";
 import { isFirstBackendRequestInSession } from "@/api/client";
 
-const nodeTypes = {
+const staticNodeTypes = {
   custom: CustomNode,
+  mlUpload: CustomNode,
+  mlClean: CustomNode,
+  mlPreprocess: CustomNode,
+  mlSplit: CustomNode,
+  mlTrain: CustomNode,
+  mlResults: CustomNode,
+  mlDownloadConfig: CustomNode,
+  default: CustomNode,
 };
+
 let nodeIdCounter = 0;
 
 export default function Home() {
   const { nodes, edges, addNode, addEdge, updateNode, setNodes, setEdges } = useWorkflow();
   const [selectedNodeId, setSelectedNodeId] = useState(null as any);
   const [reactFlowInstance, setReactFlowInstance] = useState(null as any);
+
+  const nodeTypes = useMemo(() => staticNodeTypes, []);
 
   const hasExecutingNode = nodes.some((node) => node.data?.isExecuting);
   const showColdStartBanner = hasExecutingNode && isFirstBackendRequestInSession();
@@ -44,24 +59,13 @@ export default function Home() {
     };
     addEdge(edge);
   }
-  function handleNodesChange(changes: any[]) {
-    changes.forEach((change: any) => {
-      if (change.type === "remove") {
-        setNodes((curr) => curr.filter((n) => n.id !== change.id));
-      } 
-      else if (change.type === "position" && change.position) {
-        setNodes((curr) => 
-          curr.map((n) => n.id === change.id ? { ...n, position: change.position } : n)
-        );
-      }
-    });
+
+  function handleNodesChange(changes: NodeChange[]) {
+    setNodes((nds) => applyNodeChanges(changes, nds as any) as any);
   }
-  function handleEdgesChange(changes: any[]) {
-    changes.forEach((change: any) => {
-      if (change.type === "remove") {
-        setEdges((curr) => curr.filter((e) => e.id !== change.id));
-      }
-    });
+
+  function handleEdgesChange(changes: EdgeChange[]) {
+    setEdges((eds) => applyEdgeChanges(changes, eds as any) as any);
   }
   function onDragOver(event: any) {
     event.preventDefault();
@@ -145,11 +149,26 @@ export default function Home() {
     const upstreamNodeIds = getUpstreamNodes(startNodeId);
     const allNodesToExecute = [...new Set([...upstreamNodeIds, startNodeId])];
 
+    // Pre-populate nodeOutputs with existing node outputs
+    nodes.forEach((n) => {
+      if (n.data?.output) {
+        nodeOutputs[n.id] = n.data.output;
+      }
+    });
+
     async function executeNodeChain(nodeId: string, input: any = null) {
       if (executedNodes.has(nodeId)) return;
 
       const node = nodes.find((n) => n.id === nodeId);
       if (!node) return;
+
+      let effectiveInput = input;
+      if (!effectiveInput) {
+        const incomingEdge = edges.find((e) => e.target === nodeId);
+        if (incomingEdge && nodeOutputs[incomingEdge.source]) {
+          effectiveInput = nodeOutputs[incomingEdge.source];
+        }
+      }
 
       executedNodes.add(nodeId);
       updateNode(nodeId, { isExecuting: true, error: undefined });
@@ -157,7 +176,7 @@ export default function Home() {
       try {
         const result = await executor.executeNode({
           nodeId: node.id,
-          input,
+          input: effectiveInput,
           config: node.data.config || {},
           previousNodes: nodeOutputs,
         });
@@ -207,12 +226,15 @@ export default function Home() {
       console.error("Workflow execution error:", error);
     }
   }
+  const { invalidateNodeOutputs } = useWorkflow();
   useEffect(() => {
     (window as any).__executeFromNode = executeFromNode;
+    (window as any).__invalidateNodeOutputs = invalidateNodeOutputs;
     return () => {
       delete (window as any).__executeFromNode;
+      delete (window as any).__invalidateNodeOutputs;
     };
-  }, [nodes, edges]);
+  }, [nodes, edges, invalidateNodeOutputs]);
 
   return (
     <div className="flex h-screen">

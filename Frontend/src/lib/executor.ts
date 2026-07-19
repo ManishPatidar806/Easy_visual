@@ -1,5 +1,5 @@
 import { nodeDefinitions } from "./node-definitions";
-import { uploadDataset, cleanData, preprocessData, splitData, trainModel, getResults } from "@/api/client";
+import { uploadDataset, cleanData, preprocessData, splitData, trainModel, getResults, exportModelConfig } from "@/api/client";
 
 interface NodeExecutionContext {
   nodeId: string;
@@ -14,9 +14,22 @@ interface NodeExecutionResult {
   error?: string;
 }
 
+function extractPipelineId(input: any, previousNodes?: Record<string, any>): string | null {
+  if (input?.pipeline_id) return input.pipeline_id;
+  if (input?.model_info?.pipeline_id) return input.model_info.pipeline_id;
+  if (previousNodes) {
+    for (const key of Object.keys(previousNodes)) {
+      const nodeOut = previousNodes[key];
+      if (nodeOut?.pipeline_id) return nodeOut.pipeline_id;
+      if (nodeOut?.model_info?.pipeline_id) return nodeOut.model_info.pipeline_id;
+    }
+  }
+  return null;
+}
+
 export class WorkflowExecutor {
   async executeNode(context: NodeExecutionContext): Promise<NodeExecutionResult> {
-    const { input, config } = context;
+    const { input, config, previousNodes } = context;
     const definition = nodeDefinitions[config.type];
 
     if (!definition) {
@@ -27,7 +40,7 @@ export class WorkflowExecutor {
     }
 
     try {
-      return await this.executeMLNodeSwitch(config, input);
+      return await this.executeMLNodeSwitch(config, input, previousNodes);
     } catch (error: any) {
       return {
         success: false,
@@ -36,25 +49,28 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeMLNodeSwitch(config: Record<string, any>, input: any): Promise<NodeExecutionResult> {
+  private async executeMLNodeSwitch(config: Record<string, any>, input: any, previousNodes?: Record<string, any>): Promise<NodeExecutionResult> {
     switch (config.type) {
       case "mlUpload":
         return await this.executeMLUpload(config, input);
 
       case "mlClean":
-        return await this.executeMLClean(config, input);
+        return await this.executeMLClean(config, input, previousNodes);
 
       case "mlPreprocess":
-        return await this.executeMLPreprocess(config, input);
+        return await this.executeMLPreprocess(config, input, previousNodes);
 
       case "mlSplit":
-        return await this.executeMLSplit(config, input);
+        return await this.executeMLSplit(config, input, previousNodes);
 
       case "mlTrain":
-        return await this.executeMLTrain(config, input);
+        return await this.executeMLTrain(config, input, previousNodes);
 
       case "mlResults":
-        return await this.executeMLResults(config, input);
+        return await this.executeMLResults(config, input, previousNodes);
+
+      case "mlDownloadConfig":
+        return await this.executeMLDownloadConfig(config, input, previousNodes);
 
       default:
         return {
@@ -90,9 +106,10 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeMLClean(config: Record<string, any>, input: any): Promise<NodeExecutionResult> {
+  private async executeMLClean(config: Record<string, any>, input: any, previousNodes?: Record<string, any>): Promise<NodeExecutionResult> {
     try {
-      if (!input || !input.pipeline_id) {
+      const pipelineId = extractPipelineId(input, previousNodes);
+      if (!pipelineId) {
         return {
           success: false,
           error: "❌ Not connected! Please connect this Clean Data node to an Upload node and execute the Upload node first.",
@@ -103,13 +120,14 @@ export class WorkflowExecutor {
       const columns = config.columns || [];
       const fillValue = config.fillValue;
 
-      const result = await cleanData(input.pipeline_id, strategy, columns, fillValue);
+      const result = await cleanData(pipelineId, strategy, columns, fillValue);
 
       return {
         success: true,
         output: {
-          pipeline_id: input.pipeline_id,
-          dataset_info: input.dataset_info,
+          ...input,
+          pipeline_id: pipelineId,
+          dataset_info: input?.dataset_info || result.dataset_info,
           missing_before: result.missing_before,
           missing_after: result.missing_after,
           rows_before: result.rows_before,
@@ -127,9 +145,10 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeMLPreprocess(config: Record<string, any>, input: any): Promise<NodeExecutionResult> {
+  private async executeMLPreprocess(config: Record<string, any>, input: any, previousNodes?: Record<string, any>): Promise<NodeExecutionResult> {
     try {
-      if (!input || !input.pipeline_id) {
+      const pipelineId = extractPipelineId(input, previousNodes);
+      if (!pipelineId) {
         return {
           success: false,
           error: "❌ Not connected! Please connect this Preprocess node to an Upload node (draw a line from Upload to Preprocess) and execute the Upload node first.",
@@ -137,7 +156,7 @@ export class WorkflowExecutor {
       }
 
       const result = await preprocessData(
-        input.pipeline_id,
+        pipelineId,
         config.scalerType || "standardization",
         config.columns || []
       );
@@ -145,8 +164,9 @@ export class WorkflowExecutor {
       return {
         success: true,
         output: {
-          pipeline_id: input.pipeline_id,
-          dataset_info: input.dataset_info,
+          ...input,
+          pipeline_id: pipelineId,
+          dataset_info: input?.dataset_info || result.dataset_info,
           message: result.message,
           processed: true,
           skipped: result.skipped || false,
@@ -161,9 +181,10 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeMLSplit(config: Record<string, any>, input: any): Promise<NodeExecutionResult> {
+  private async executeMLSplit(config: Record<string, any>, input: any, previousNodes?: Record<string, any>): Promise<NodeExecutionResult> {
     try {
-      if (!input || !input.pipeline_id) {
+      const pipelineId = extractPipelineId(input, previousNodes);
+      if (!pipelineId) {
         return {
           success: false,
           error: "❌ Not connected! Please connect this Split node to the previous node (Upload or Preprocess) and execute it first.",
@@ -178,13 +199,14 @@ export class WorkflowExecutor {
       }
 
       const splitRatio = parseFloat(config.splitRatio || "0.8");
-      const result = await splitData(input.pipeline_id, splitRatio, config.targetColumn);
+      const result = await splitData(pipelineId, splitRatio, config.targetColumn);
 
       return {
         success: true,
         output: {
-          pipeline_id: input.pipeline_id,
-          dataset_info: input.dataset_info,
+          ...input,
+          pipeline_id: pipelineId,
+          dataset_info: input?.dataset_info || result.dataset_info,
           train_size: result.train_size,
           test_size: result.test_size,
           features: result.features,
@@ -200,9 +222,10 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeMLTrain(config: Record<string, any>, input: any): Promise<NodeExecutionResult> {
+  private async executeMLTrain(config: Record<string, any>, input: any, previousNodes?: Record<string, any>): Promise<NodeExecutionResult> {
     try {
-      if (!input || !input.pipeline_id) {
+      const pipelineId = extractPipelineId(input, previousNodes);
+      if (!pipelineId) {
         return {
           success: false,
           error: "❌ Not connected! Please connect this Train node to a Split node and execute the Split node first.",
@@ -212,7 +235,7 @@ export class WorkflowExecutor {
       const modelType = config.modelType || "logistic_regression";
       const taskType = config.taskType || "classification";
 
-      const result = await trainModel(input.pipeline_id, modelType, taskType);
+      const result = await trainModel(pipelineId, modelType, taskType);
 
       const scoreLabel = taskType === "classification" ? "Accuracy" : "R² Score";
       const scoreValue = result.test_score;
@@ -223,7 +246,8 @@ export class WorkflowExecutor {
       return {
         success: true,
         output: {
-          pipeline_id: input.pipeline_id,
+          ...input,
+          pipeline_id: pipelineId,
           model_type: result.model_type,
           task_type: result.task_type,
           train_score: result.train_score,
@@ -240,21 +264,23 @@ export class WorkflowExecutor {
     }
   }
 
-  private async executeMLResults(_config: Record<string, any>, input: any): Promise<NodeExecutionResult> {
+  private async executeMLResults(_config: Record<string, any>, input: any, previousNodes?: Record<string, any>): Promise<NodeExecutionResult> {
     try {
-      if (!input || !input.pipeline_id) {
+      const pipelineId = extractPipelineId(input, previousNodes);
+      if (!pipelineId) {
         return {
           success: false,
           error: "❌ Not connected! Please connect this Results node to a Train node and execute the Train node first.",
         };
       }
 
-      const result = await getResults(input.pipeline_id);
+      const result = await getResults(pipelineId);
 
       return {
         success: true,
         output: {
           ...result,
+          pipeline_id: pipelineId,
           message: "Results retrieved successfully",
         },
       };
@@ -265,4 +291,33 @@ export class WorkflowExecutor {
       };
     }
   }
+
+  private async executeMLDownloadConfig(_config: Record<string, any>, input: any, previousNodes?: Record<string, any>): Promise<NodeExecutionResult> {
+    try {
+      const pipelineId = extractPipelineId(input, previousNodes);
+      if (!pipelineId) {
+        return {
+          success: false,
+          error: "❌ Not connected! Please connect this Download Model Config node to a Train node or Results node and execute the Train node first.",
+        };
+      }
+
+      const result = await exportModelConfig(pipelineId);
+
+      return {
+        success: true,
+        output: {
+          ...result,
+          pipeline_id: pipelineId,
+          message: "Production model configuration & parameters prepared successfully. Click 'Download JSON Config' on the node to save.",
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || "❌ Failed to export model configuration. Please make sure the model has been trained.",
+      };
+    }
+  }
 }
+

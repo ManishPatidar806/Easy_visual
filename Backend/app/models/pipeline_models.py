@@ -80,3 +80,27 @@ class PipelineResults(BaseModel):
     model_info: Optional[Dict[str, Any]] = None
     training_results: Optional[Dict[str, Any]] = None
     visualizations: Optional[Dict[str, str]] = None
+
+
+class ExportResponse(BaseModel):
+    pipeline_id: str
+    model_type: str
+    task_type: str
+    target_column: str
+    feature_columns: List[str]
+    model_params: Dict[str, Any]
+    best_params: Optional[Dict[str, Any]] = None
+    coefficients: Optional[Dict[str, Any]] = None
+    intercept: Optional[Any] = None
+    feature_importances: Optional[Dict[str, float]] = None
+    classes: Optional[List[Any]] = None
+    cross_validation: Optional[Dict[str, Any]] = None
+    preprocessing: Optional[Dict[str, Any]] = None
+    cleaning: Optional[Dict[str, Any]] = None
+    model_base64: str
+    python_runner_code: str
+    fastapi_microservice_code: Optional[str] = None
+    pure_math_code: Optional[str] = None
+    message: str
+
+

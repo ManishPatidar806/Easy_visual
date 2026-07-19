@@ -5,6 +5,7 @@ import {
   Split,
   Cpu,
   BarChart3,
+  Download,
 } from "lucide-react";
 
 export interface NodeDefinition {
@@ -217,4 +218,18 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     defaultConfig: {},
     configFields: [],
   },
+
+  mlDownloadConfig: {
+    type: "mlDownloadConfig",
+    label: "Download Model Config",
+    description: "Export model configuration & serialized artifact to run inference without retraining",
+    category: "ml",
+    icon: Download,
+    color: "bg-teal-600",
+    defaultConfig: {
+      filename: "model_config.json",
+    },
+    configFields: [],
+  },
 };
+

@@ -10,7 +10,7 @@ import { X, Upload as UploadIcon, CheckCircle, ChevronRight } from "lucide-react
 
 export default function NodeConfigPanel(props: any) {
   const { nodeId, onClose } = props;
-  const { nodes, edges, updateNode } = useWorkflow();
+  const { nodes, edges, updateNode, invalidateNodeOutputs } = useWorkflow();
   const node = nodes.find((n) => n.id === nodeId);
   const fileInputRef = useRef(null as any);
   
@@ -80,26 +80,34 @@ export default function NodeConfigPanel(props: any) {
       ...config,
       ...(selectedColumns.length > 0 && { columns: selectedColumns }),
     };
+    invalidateNodeOutputs(nodeId);
     updateNode(nodeId, { config: finalConfig });
     onClose();
   };
 
   const handleChange = (name: string, value: any) => {
-    setConfig((prev) => ({ ...prev, [name]: value }));
+    setConfig((prev: any) => ({ ...prev, [name]: value }));
   };
 
   const handleFileUpload = (e: any) => {
     const file = e.target.files?.[0];
     if (file) {
-      handleChange("file", file);
-      handleChange("filename", file.name);
+      const updatedConfig = {
+        ...config,
+        file,
+        filename: file.name,
+        type: "mlUpload",
+      };
+      setConfig(updatedConfig);
+      invalidateNodeOutputs(nodeId);
+      updateNode(nodeId, { config: updatedConfig });
     }
   };
 
   const toggleColumn = (column: string) => {
-    setSelectedColumns((prev) =>
+    setSelectedColumns((prev: string[]) =>
       prev.includes(column)
-        ? prev.filter((c) => c !== column)
+        ? prev.filter((c: string) => c !== column)
         : [...prev, column]
     );
   };
@@ -138,7 +146,7 @@ export default function NodeConfigPanel(props: any) {
     }
 
     const allColumns = getAvailableColumns();
-    return allColumns.filter((col) => {
+    return allColumns.filter((col: string) => {
       const dtype = columnTypes[col] || "";
       return dtype.includes("int") || dtype.includes("float");
     });
@@ -263,7 +271,7 @@ export default function NodeConfigPanel(props: any) {
                 {field.name === "targetColumn" && getAvailableColumns().length > 0 ? (
                   <>
                     <option value="">Select target column...</option>
-                    {getAvailableColumns().map((col) => (
+                    {getAvailableColumns().map((col: string) => (
                       <option key={col} value={col}>
                         {col}
                       </option>
@@ -295,7 +303,7 @@ export default function NodeConfigPanel(props: any) {
 
             {}
             {field.type === "file" && (
-              <div className="mt-1">
+              <div className="mt-1 space-y-2">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -304,18 +312,26 @@ export default function NodeConfigPanel(props: any) {
                   className="hidden"
                 />
                 <Button
-                  onClick={() => fileInputRef.current?.click()}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
                   variant="outline"
-                  className="w-full"
+                  className="w-full border-dashed border-2 border-purple-400 dark:border-purple-600 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/30 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300"
                 >
-                  <UploadIcon className="w-4 h-4 mr-2" />
-                  {config.filename || "Choose CSV/XLSX file..."}
+                  <UploadIcon className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
+                  {config.filename ? `Change File: ${config.filename}` : "Choose CSV or Excel file..."}
                 </Button>
                 {config.filename && (
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    {config.filename}
-                  </p>
+                  <div className="p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-xs text-green-700 dark:text-green-300 flex items-center justify-between">
+                    <span className="flex items-center gap-1 font-mono font-medium truncate">
+                      <CheckCircle className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                      {config.filename}
+                    </span>
+                    <span className="text-[10px] bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-100 px-1.5 py-0.5 rounded font-sans font-semibold">Ready</span>
+                  </div>
                 )}
               </div>
             )}
@@ -336,7 +352,7 @@ export default function NodeConfigPanel(props: any) {
                   </p>
                 ) : (
                   <div className="space-y-1">
-                    {getNumericColumns().map((col) => (
+                    {getNumericColumns().map((col: string) => (
                       <label
                         key={col}
                         className="flex items-center space-x-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded transition-colors"
@@ -914,6 +930,130 @@ export default function NodeConfigPanel(props: any) {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {node.data.type === "mlDownloadConfig" && node.data.output && (
+          <div className="mt-4 space-y-4">
+            <div className="p-4 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg">
+              <h4 className="text-sm font-semibold text-teal-900 dark:text-teal-100 mb-2 flex items-center gap-2">
+                <span>🏆 Production Model Package Ready</span>
+              </h4>
+              <p className="text-xs text-teal-700 dark:text-teal-300 mb-3">
+                Model was trained & tuned with Cross-Validation. Below are the optimal parameters, mathematical coefficients, and integration code snippets.
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="bg-white dark:bg-teal-950 p-2.5 rounded border border-teal-200 dark:border-teal-800">
+                  <div className="text-[11px] text-teal-600 dark:text-teal-400 font-medium">Model Type</div>
+                  <div className="text-sm font-bold text-teal-900 dark:text-teal-100 font-mono">
+                    {node.data.output.model_type || "N/A"}
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-teal-950 p-2.5 rounded border border-teal-200 dark:border-teal-800">
+                  <div className="text-[11px] text-teal-600 dark:text-teal-400 font-medium">Task Type</div>
+                  <div className="text-sm font-bold text-teal-900 dark:text-teal-100 font-mono capitalize">
+                    {node.data.output.task_type || "N/A"}
+                  </div>
+                </div>
+              </div>
+
+              {node.data.output.cross_validation?.mean_score !== undefined && (
+                <div className="bg-emerald-50 dark:bg-emerald-900/30 p-3 rounded border border-emerald-200 dark:border-emerald-800 mb-3">
+                  <div className="text-xs text-emerald-800 dark:text-emerald-200 font-semibold mb-1">
+                    🎯 Cross-Validation Score (GridSearchCV)
+                  </div>
+                  <div className="text-lg font-bold text-emerald-900 dark:text-emerald-100">
+                    {(node.data.output.cross_validation.mean_score * (node.data.output.task_type === 'classification' ? 100 : 1)).toFixed(2)}
+                    {node.data.output.task_type === 'classification' ? '%' : ' R²'}
+                    <span className="text-xs font-normal text-emerald-700 dark:text-emerald-300 ml-2">
+                      (±{(node.data.output.cross_validation.std_score * (node.data.output.task_type === 'classification' ? 100 : 1)).toFixed(2)})
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {node.data.output.best_params && Object.keys(node.data.output.best_params).length > 0 && (
+                <div className="bg-white dark:bg-teal-950 p-2.5 rounded border border-teal-200 dark:border-teal-800 mb-3">
+                  <div className="text-[11px] text-teal-600 dark:text-teal-400 font-medium mb-1">Optimal Hyperparameters (Best CV)</div>
+                  <div className="flex flex-wrap gap-1">
+                    {Object.entries(node.data.output.best_params).map(([key, val]: [string, any]) => (
+                      <span key={key} className="px-2 py-0.5 bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 text-[11px] font-mono rounded">
+                        {key}: {String(val)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {node.data.output.coefficients && (
+                <div className="bg-white dark:bg-teal-950 p-2.5 rounded border border-teal-200 dark:border-teal-800 mb-3">
+                  <div className="text-[11px] text-teal-600 dark:text-teal-400 font-medium mb-1">Feature Coefficients</div>
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {Object.entries(node.data.output.coefficients).map(([feat, coef]: [string, any]) => (
+                      <div key={feat} className="flex justify-between text-xs font-mono">
+                        <span className="text-teal-800 dark:text-teal-200">{feat}</span>
+                        <span className="font-bold text-teal-900 dark:text-teal-100">{typeof coef === 'number' ? coef.toFixed(4) : JSON.stringify(coef)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {node.data.output.intercept !== undefined && node.data.output.intercept !== null && (
+                <div className="bg-white dark:bg-teal-950 p-2.5 rounded border border-teal-200 dark:border-teal-800 mb-3">
+                  <div className="text-[11px] text-teal-600 dark:text-teal-400 font-medium">Intercept / Bias</div>
+                  <div className="text-xs font-bold text-teal-900 dark:text-teal-100 font-mono mt-0.5">
+                    {Array.isArray(node.data.output.intercept) ? node.data.output.intercept.join(', ') : Number(node.data.output.intercept).toFixed(4)}
+                  </div>
+                </div>
+              )}
+
+              {node.data.output.python_runner_code && (
+                <div className="bg-gray-900 p-3 rounded border border-gray-700 text-gray-100 mb-3">
+                  <div className="text-xs text-teal-400 font-semibold mb-1">🐍 Python Inference Code</div>
+                  <pre className="text-[11px] font-mono whitespace-pre-wrap overflow-x-auto text-gray-300">
+                    {node.data.output.python_runner_code}
+                  </pre>
+                </div>
+              )}
+
+              {node.data.output.fastapi_microservice_code && (
+                <div className="bg-gray-900 p-3 rounded border border-gray-700 text-gray-100 mb-3">
+                  <div className="text-xs text-teal-400 font-semibold mb-1">⚡ FastAPI Server Code (Production Deployment)</div>
+                  <pre className="text-[11px] font-mono whitespace-pre-wrap overflow-x-auto text-gray-300">
+                    {node.data.output.fastapi_microservice_code}
+                  </pre>
+                </div>
+              )}
+
+              {node.data.output.pure_math_code && (
+                <div className="bg-gray-900 p-3 rounded border border-gray-700 text-gray-100 mb-3">
+                  <div className="text-xs text-amber-400 font-semibold mb-1">🧮 Pure Python Formula (No Dependencies)</div>
+                  <pre className="text-[11px] font-mono whitespace-pre-wrap overflow-x-auto text-gray-300">
+                    {node.data.output.pure_math_code}
+                  </pre>
+                </div>
+              )}
+
+              <Button
+                onClick={() => {
+                  const jsonStr = JSON.stringify(node.data.output, null, 2);
+                  const blob = new Blob([jsonStr], { type: "application/json" });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement("a");
+                  link.href = url;
+                  link.download = `${node.data.output.model_type || "model"}_config_${node.data.output.pipeline_id || "export"}.json`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                }}
+                className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold flex items-center justify-center gap-2"
+              >
+                📥 Download JSON Model Config
+              </Button>
+            </div>
           </div>
         )}
 

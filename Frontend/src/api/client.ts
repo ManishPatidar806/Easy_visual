@@ -186,3 +186,16 @@ export async function getResults(pipelineId: string): Promise<any> {
 
   return handleResponse(response);
 }
+
+export async function exportModelConfig(pipelineId: string): Promise<any> {
+  if (!pipelineId) {
+    throw new APIError(400, "Pipeline ID is required");
+  }
+
+  const response = await fetchWithTimeout(`${API_BASE_URL}/ml/export/${pipelineId}`, {
+    method: "GET",
+  });
+
+  return handleResponse(response);
+}
+

@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV /media/mohit/Projects/ML-workflow/Backend/.venv
+set -gx VIRTUAL_ENV /home/mohit/Videos/Easy_visual/Backend/.venv
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/"bin $PATH

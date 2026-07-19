@@ -1,268 +1,122 @@
 # EasyVisual
 
-A modern, no-code machine learning pipeline builder with a visual drag-and-drop interface. Build, train, and evaluate ML models without writing code.
+A visual, no-code machine learning pipeline builder. Drag and drop nodes to upload datasets, clean data, preprocess features, split data, train ML models, evaluate performance, and export model configurations.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![React](https://img.shields.io/badge/React-18.2.0-blue.svg)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-green.svg)
-![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)
+---
 
 ## 🌟 Features
 
-- **Visual Pipeline Builder**: Drag-and-drop interface for creating ML workflows
-- **Real-time Execution**: Watch your pipeline execute step-by-step
-- **Multiple ML Algorithms**: Support for Logistic Regression, Decision Tree, and Random Forest
-- **Data Preprocessing**: Built-in standardization and normalization
-- **Interactive Configuration**: Configure each node with a clean, intuitive panel
-- **Performance Metrics**: View accuracy, precision, recall, and F1-score
-- **Dark Mode Support**: Seamless light/dark theme switching
-- **Responsive Design**: Works on desktop and tablet devices
+- **Visual Pipeline Canvas**: Drag and drop nodes to build ML workflows.
+- **Dataset Upload**: Supports `.csv`, `.xlsx`, and `.xls` files.
+- **Data Cleaning**: Handle missing values with automated cleaning strategies.
+- **Data Preprocessing**: Scale numeric features using Standardization (`StandardScaler`) or Normalization (`MinMaxScaler`).
+- **Train-Test Split**: Set train/test ratios and select the target column.
+- **ML Model Algorithms**:
+  - **Classification**: Logistic Regression, Decision Tree, Random Forest
+  - **Regression**: Linear Regression, Ridge Regression, Lasso Regression
+- **Results & Evaluation**: View accuracy, precision, recall, F1-score, R² score, MAE, MSE, RMSE, confusion matrix, and performance charts.
+- **Model Export**: Download model configuration, serialized fitted pipeline, Python runner script, FastAPI microservice code, and pure math formula.
 
-## 🏗️ Architecture
-
-### Frontend
-- **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite 5
-- **State Management**: Zustand
-- **UI Components**: Radix UI, Tailwind CSS
-- **Workflow Canvas**: ReactFlow 11
-- **Type Safety**: Full TypeScript support
-
-### Backend
-- **Framework**: FastAPI (Python)
-- **ML Library**: scikit-learn
-- **Data Processing**: pandas, numpy
-- **API Documentation**: Auto-generated Swagger/OpenAPI
-- **Architecture**: Layered (API → Service → Storage)
-
-## 📋 Prerequisites
-
-- **Node.js** 18+ and npm
-- **Python** 3.12+
-- **pip** for Python package management
-
-## 🚀 Quick Start
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/ManishPatidar806/Easy_visual.git
-cd EasyVisual
-```
-
-### 2. Backend Setup
-
-```bash
-# Navigate to backend directory
-cd Backend
-
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment
-source venv/bin/activate  # Linux/Mac
-# or
-venv\Scripts\activate  # Windows
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start the backend server
-python main.py
-```
-
-Backend will be available at: **http://localhost:8000**
-
-### 3. Frontend Setup
-
-```bash
-# Navigate to frontend directory (in a new terminal)
-cd Frontend
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-Frontend will be available at: **http://localhost:3000**
-
-## 📖 Usage Guide
-
-### Building Your First Pipeline
-
-1. **Upload Dataset**
-   - Drag the "Upload Dataset" node to the canvas
-   - Double-click to configure
-   - Upload a CSV or Excel file (e.g., iris.csv)
-
-2. **Preprocess Data**
-   - Add "Preprocess Data" node
-   - Connect it to the Upload node
-   - Select columns to normalize/standardize
-
-3. **Split Data**
-   - Add "Train-Test Split" node
-   - Choose split ratio (60/40, 70/30, 80/20)
-   - Select target column for prediction
-
-4. **Train Model**
-   - Add "Train Model" node
-   - Select algorithm (Logistic Regression, Decision Tree, Random Forest)
-   - Connect to Split node
-
-5. **View Results**
-   - Add "View Results" node
-   - Connect to Train node
-   - Click "Run Pipeline" to execute
-
-### Supported Datasets
-
-- **Format**: CSV, XLSX, XLS
-- **Size**: Up to 50MB
-- **Requirements**: Numeric features for preprocessing and training
-
-### Example Datasets
-
-A sample iris dataset is included in `sample_iris.csv`:
-- 150 rows
-- 5 columns (4 features + 1 target)
-- Perfect for testing classification models
+---
 
 ## 🎯 ML Pipeline Nodes
 
-| Node | Description | Configuration |
-|------|-------------|---------------|
-| **Upload Dataset** | Load CSV/Excel files | File selection |
-| **Preprocess Data** | Scale numeric features | Scaler type, columns |
-| **Train-Test Split** | Divide data for training | Split ratio, target column |
-| **Train Model** | Train ML algorithm | Model type selection |
-| **View Results** | Display metrics | Auto-populated |
+| Node | Description |
+|------|-------------|
+| **Upload Dataset** | Upload CSV or Excel files |
+| **Clean Data** | Clean missing values in the dataset |
+| **Preprocess Data** | Scale numeric feature columns |
+| **Train-Test Split** | Split data into training and test sets |
+| **Train Model** | Train classification or regression model |
+| **View Results** | Display evaluation metrics and charts |
+| **Export Model** | Download `model_config.json` bundle |
 
-## 🛠️ API Endpoints
+---
 
-### Backend API (http://localhost:8000)
+## 🚀 Quick Start
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | API information |
-| `/health` | GET | Health check |
-| `/docs` | GET | Interactive API docs |
-| `/api/ml/upload` | POST | Upload dataset |
-| `/api/ml/preprocess` | POST | Preprocess data |
-| `/api/ml/split` | POST | Split dataset |
-| `/api/ml/train` | POST | Train model |
-| `/api/ml/results/{id}` | GET | Get results |
+### 1. Backend Setup
 
-## 📊 Performance Metrics
-
-The application tracks and displays:
-
-- **Accuracy**: Overall correctness of predictions
-- **Precision**: Positive prediction accuracy
-- **Recall**: True positive rate
-- **F1-Score**: Harmonic mean of precision and recall
-- **Train/Test Split**: Separate metrics for validation
-
-## 🔧 Configuration
-
-### Backend Configuration
-
-Edit `Backend/.env` or `Backend/app/core/config.py`:
-
-```python
-# Server
-HOST = "0.0.0.0"
-PORT = 8000
-DEBUG = True
-
-# CORS
-CORS_ORIGINS = ["http://localhost:3000", "http://localhost:3001"]
-
-# ML
-RANDOM_STATE = 42
-MAX_UPLOAD_SIZE = 52428800  # 50MB
+```bash
+cd Backend
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python main.py
 ```
+Backend runs at: `http://localhost:8000` (Docs at `http://localhost:8000/docs`)
 
-### Frontend Configuration
-
-Edit `Frontend/vite.config.ts`:
-
-```typescript
-server: {
-  port: 3000,
-  proxy: {
-    '/api': {
-      target: 'http://localhost:8000',
-      changeOrigin: true,
-    },
-  },
-}
-```
-
-## 🏭 Production Deployment
-
-### Backend (Docker)
-
-```dockerfile
-FROM python:3.12-slim
-WORKDIR /app
-COPY Backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY Backend/ .
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-### Frontend (Build)
+### 2. Frontend Setup
 
 ```bash
 cd Frontend
-npm run build
-# Serve the dist/ directory with Nginx or similar
+npm install
+npm run dev
+```
+Frontend runs at: `http://localhost:3000`
+
+---
+
+## 📄 Understanding `model_config.json`
+
+When you click **Download JSON Model Config**, a single `model_config.json` file is saved. It contains:
+
+- `model_type` & `task_type`: Model algorithm and task category.
+- `feature_columns` & `target_column`: Required inputs and target column.
+- `feature_schema`: Input data types, min/max bounds, and sample values.
+- `pipeline_base64`: Serialized fitted pipeline (includes both scalers & model).
+- `python_runner_code`: Ready-to-run Python prediction script.
+- `fastapi_microservice_code`: Ready-to-run FastAPI REST server script.
+- `pure_math_code`: Standalone math formula without external libraries.
+
+---
+
+## 💡 Simple Way to Use `model_config.json`
+
+### Simple Python Prediction (3 Steps)
+
+1. Put `model_config.json` in your Python project folder.
+2. Run this script:
+
+```python
+import json
+import base64
+import pickle
+import pandas as pd
+
+# Step 1: Load model_config.json
+with open("model_config.json", "r") as f:
+    config = json.load(f)
+
+# Step 2: Load the fitted pipeline
+pipeline = pickle.loads(base64.b64decode(config["pipeline_base64"]))
+
+# Step 3: Predict on any new data (pass values for your feature_columns)
+sample_input = {col: 0.0 for col in config["feature_columns"]}
+new_data = pd.DataFrame([sample_input])
+
+predictions = pipeline.predict(new_data)
+print("🚀 Prediction:", predictions[0])
 ```
 
-### Environment Variables
+---
 
-**Backend (.env)**:
-```
-DEBUG=False
-CORS_ORIGINS=https://your-domain.com
-```
+## 🛠️ API Endpoints
 
-**Frontend**:
-```
-VITE_API_URL=https://api.your-domain.com/api
-```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | API welcome message |
+| `/health` | GET | Health status check |
+| `/api/ml/upload` | POST | Upload dataset file |
+| `/api/ml/clean` | POST | Clean dataset |
+| `/api/ml/preprocess` | POST | Apply feature scaling |
+| `/api/ml/split` | POST | Split dataset into train and test sets |
+| `/api/ml/train` | POST | Train machine learning model |
+| `/api/ml/results/{id}` | GET | Retrieve training metrics and charts |
+| `/api/ml/export/{id}` | GET | Export model configuration JSON |
 
-## 📁 Project Structure
-
-```
-ML-workflow/
-├── Backend/
-│   ├── app/
-│   │   ├── api/              # API endpoints
-│   │   ├── core/             # Configuration
-│   │   ├── models/           # Pydantic models
-│   │   ├── services/         # Business logic
-│   │   └── utils/            # Utilities
-│   ├── main.py               # Application entry
-│   ├── requirements.txt      # Python dependencies
-│   └── README.md            # Backend docs
-├── Frontend/
-│   ├── src/
-│   │   ├── api/             # API client
-│   │   ├── components/      # React components
-│   │   ├── lib/             # Core logic
-│   │   └── pages/           # Page components
-│   ├── package.json         # Node dependencies
-│   └── vite.config.ts       # Vite configuration
-└── README.md                # This file
-```
+---
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
----
-
-
+Licensed under the MIT License.

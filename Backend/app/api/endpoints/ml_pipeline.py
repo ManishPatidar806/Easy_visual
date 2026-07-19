@@ -11,6 +11,7 @@ from app.models.pipeline_models import (
     TrainRequest,
     TrainResponse,
     PipelineResults,
+    ExportResponse,
     DatasetInfo,
 )
 from app.services.ml_service import MLService
@@ -113,3 +114,16 @@ async def get_results(pipeline_id: str):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/export/{pipeline_id}", response_model=ExportResponse)
+async def export_model(pipeline_id: str):
+    try:
+        result = await MLService.export_model(pipeline_id)
+        return ExportResponse(**result)
+        
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+

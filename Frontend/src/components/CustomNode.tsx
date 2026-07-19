@@ -1,16 +1,36 @@
 import { Handle, Position, useReactFlow } from "reactflow";
 import { nodeDefinitions } from "@/lib/node-definitions";
 import { isFirstBackendRequestInSession } from "@/api/client";
-import { Settings, CheckCircle, AlertCircle, Loader2, Trash2, Play, Eye } from "lucide-react";
+import { useWorkflow } from "@/lib/WorkflowContext";
+import { Settings, CheckCircle, AlertCircle, Loader2, Trash2, Play, Eye, FileSpreadsheet } from "lucide-react";
 
 function CustomNode(props: any) {
   const { data, selected, id } = props;
-  const definition = nodeDefinitions[data.type];
+  const nodeTypeKey = data?.type || data?.config?.type || props.type || "mlUpload";
+  const definition = nodeDefinitions[nodeTypeKey] || nodeDefinitions["mlUpload"];
   const { deleteElements } = useReactFlow();
-
-  if (!definition) return null;
+  const { updateNode, invalidateNodeOutputs } = useWorkflow();
 
   const Icon = definition.icon;
+
+  const handleCanvasFileSelect = (e: any) => {
+    e.stopPropagation();
+    const file = e.target.files?.[0];
+    if (file) {
+      const updatedConfig = {
+        ...(data.config || {}),
+        file,
+        filename: file.name,
+        type: "mlUpload",
+      };
+      invalidateNodeOutputs(id);
+      updateNode(id, {
+        config: updatedConfig,
+        output: undefined,
+        error: undefined,
+      });
+    }
+  };
 
   const handleDelete = (e: any) => {
     e.stopPropagation();
@@ -103,7 +123,26 @@ function CustomNode(props: any) {
           {definition.description}
         </div>
 
-        {data.config && Object.keys(data.config).length > 0 && (
+        {data.type === "mlUpload" && (
+          <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+            <label className="cursor-pointer border-2 border-dashed border-purple-400 dark:border-purple-600 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 p-2 rounded-md block text-center text-xs text-purple-700 dark:text-purple-300 font-medium transition-colors">
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={handleCanvasFileSelect}
+                className="hidden"
+              />
+              <div className="flex items-center justify-center gap-1">
+                <FileSpreadsheet className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                <span className="truncate max-w-[150px]">
+                  {data.config?.filename ? data.config.filename : "Choose CSV/XLSX..."}
+                </span>
+              </div>
+            </label>
+          </div>
+        )}
+
+        {data.config && Object.keys(data.config).length > 0 && data.type !== "mlUpload" && (
           <div className="mt-2 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded">
             <div className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
               <Settings className="h-3 w-3" />
@@ -184,8 +223,39 @@ function CustomNode(props: any) {
             </button>
           </div>
         )}
+        {data.output && !data.error && data.type === "mlDownloadConfig" && (
+          <div className="mt-2 space-y-2">
+            <div className="text-xs bg-teal-50 dark:bg-teal-900/20 p-2 rounded border border-teal-200 dark:border-teal-800">
+              <div className="text-teal-700 dark:text-teal-300 font-medium">📥 Config Exported</div>
+              <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1">
+                Model: {data.output.model_type || "Trained Model"}
+              </div>
+              <div className="text-[10px] text-gray-600 dark:text-gray-400">
+                Features: {data.output.feature_columns?.length || 0} columns
+              </div>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const jsonStr = JSON.stringify(data.output, null, 2);
+                const blob = new Blob([jsonStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `${data.output.model_type || "model"}_config_${data.output.pipeline_id || "export"}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+              }}
+              className="w-full py-1.5 px-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded transition-colors flex items-center justify-center gap-1"
+            >
+              📥 Download JSON Config
+            </button>
+          </div>
+        )}
       </div>
-      {data.type !== "mlResults" && (
+      {data.type !== "mlResults" && data.type !== "mlDownloadConfig" && (
         <Handle
           type="source"
           position={Position.Right}
